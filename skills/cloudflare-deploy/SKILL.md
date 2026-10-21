@@ -16,24 +16,36 @@ Reply in the user's language and explain what each command does before running i
 
 `cf` is Cloudflare's new CLI and is in beta, so its commands can change between releases. Prefer discovery over memory: when a command is not listed in this file, find it with `npx cf cli search "<describe the task>"` and read `npx cf <command> --help`. Keep search queries anonymous: describe the action, never names, emails, domains, or IDs.
 
-- `cloudflare.config.ts` exists: use `cf`.
-- `wrangler.jsonc`, `wrangler.json`, or `wrangler.toml` exists and `cloudflare.config.ts` does not: use the [Wrangler branch](#wrangler-branch). Do not run `cf init`, `cf build`, `cf dev`, or `cf deploy` there; they write a new config that ignores the Wrangler file.
-- Neither exists: use `cf`. Do not install Wrangler or create a Wrangler config.
+Check in this order and take the first match:
+
+| Project | Path |
+|---|---|
+| `cloudflare.config.ts` exists | `cf` (step 2 onward) |
+| `wrangler.jsonc`, `wrangler.json`, or `wrangler.toml` exists | [Wrangler branch](#wrangler-branch) |
+| Next.js (`next` in dependencies) | [Next.js branch](#nextjs-branch) |
+| SvelteKit (`@sveltejs/kit` in dependencies) | [Wrangler branch](#wrangler-branch); `cf` does not support SvelteKit yet |
+| Astro (`astro` in dependencies) | [Wrangler branch](#wrangler-branch); `cf` writes a Wrangler config for Astro and then cannot build it |
+| Vite (React, Vue, Svelte, Solid), plain HTML, or another detected framework | `cf` (step 2 onward) |
+| A server that calls `listen()` (Express, Fastify, NestJS), or no frontend at all | Stop: this is not a Workers app. Use `dokploy-deploy` |
+
+In a project with a Wrangler config, never run `cf init`, `cf build`, `cf dev`, or `cf deploy`: they write a second config that ignores the Wrangler file.
 
 ## 2. Preflight
 
 1. `node -v` must be 22.18 or newer. If older, stop and tell the user to install the current LTS from nodejs.org. Bun is not supported.
-2. The project builds locally with its own build script (`npm run build`).
-3. Note the `build` script. `cf build` and `cf deploy` run the framework's own build (for example `vite build`), not `package.json` scripts, so extra steps such as `tsc -b` are skipped. When the script has extra steps, keep them by running them before `cf deploy`, or change the script to `"build": "tsc -b && cf build"` with the user's approval.
+2. The project builds locally with its own build script (`npm run build`). Fix failures here first; they are easier to read than deploy errors.
+3. `cf build` and `cf deploy` run only the framework's build (for example `vite build`), not the `build` script, so extra steps are skipped. The Vite templates use `tsc -b && vite build`: under `cf deploy` a type error no longer stops the deploy. Always run `npm run build` before `cf deploy`, so the project's own checks still gate what goes live.
 
 ## 3. Set up the project
 
 Skip when `cloudflare.config.ts` already exists.
 
-1. Run `npx -y cf@latest init .`. It detects the framework and prints the Worker name, framework, build command, and output directory. In a terminal it asks before changing files; when the agent runs it without a terminal it applies the changes directly, so show the user the detected settings and changed files afterwards.
-2. For a Vite app it installs `cf` and `@cloudflare/vite-plugin` as devDependencies, creates `cloudflare.config.ts`, adds a `deploy` script, and adds `.env*`, `.dev.vars*`, and `.wrangler` to `.gitignore`.
-3. Add the build output folder to `.gitignore`: `echo ".cloudflare/" >> .gitignore`.
-4. Check `cloudflare.config.ts`: the `name` becomes part of the URL (lowercase letters, digits, and dashes). For a client-side router, `assets.notFoundHandling` should be `"single-page-application"`.
+1. **Plain HTML without a build step:** move the site files (`index.html`, CSS, images) into a `public/` folder first. Otherwise `cf` uploads the whole project folder, including `node_modules`, and the deploy fails on file size. Commit the move.
+2. Run `npx -y cf@latest init .`. It detects the framework and prints the Worker name, framework, build command, and output directory. In a terminal it asks before changing files; when the agent runs it without a terminal it applies the changes directly, so show the user the detected settings and changed files afterwards.
+3. For a Vite app it installs `cf` and `@cloudflare/vite-plugin` as devDependencies, creates `cloudflare.config.ts`, adds a `deploy` script, and adds `.env*`, `.dev.vars*`, and `.wrangler` to `.gitignore`.
+4. For plain HTML it creates `wrangler.config.ts` but does not install Wrangler, so the build fails with "No Cloudflare dev-server is installed". Run `npm i -D wrangler@latest`.
+5. Add the build output folder to `.gitignore`: `echo ".cloudflare/" >> .gitignore`.
+6. Check `cloudflare.config.ts`: the `name` becomes part of the URL (lowercase letters, digits, and dashes). For a client-side router, `assets.notFoundHandling` should be `"single-page-application"`.
 
 ## 4. Use the latest cf
 
@@ -58,7 +70,7 @@ Never ask the user to paste a Cloudflare API token into the chat.
 
 ## 7. Deploy
 
-1. Run the project's extra build steps from preflight, if any.
+1. Run `npm run build` and stop if it fails (see preflight step 3).
 2. Validate without uploading: `npx cf deploy --dry-run`.
 3. Deploy: `npx cf deploy` (or `--temporary-account`, see step 5).
 4. It prints the URL, usually `https://<name>.<account-subdomain>.workers.dev`. HTTPS works immediately. If the account has no `workers.dev` subdomain yet, follow the command's prompt or its error message.
@@ -76,13 +88,23 @@ Never ask the user to paste a Cloudflare API token into the chat.
 
 ## Wrangler branch
 
-For projects that already have a Wrangler config:
+For projects with a Wrangler config, and for SvelteKit and Astro:
 
 1. Use the project's Wrangler, updated: `npm i -D wrangler@latest`, then `npx wrangler --version`.
-2. Sign in: `npx wrangler whoami`. If not signed in, the user runs `npx wrangler login` themselves (browser approval; add `--device` on a remote machine or in a container). Without an account, after the same 60-minute explanation and a yes, use `npx wrangler deploy --temporary`.
-3. Static or single-page apps need `assets.directory` (the build output) and, for client-side routers, `assets.not_found_handling: "single-page-application"` in the Wrangler config.
-4. Build with the project's script, then `npx wrangler deploy --dry-run`, then `npx wrangler deploy`.
-5. Secrets: `npx wrangler secret put <NAME>`, run by the user so they type the value into the prompt.
+2. No Wrangler config yet (SvelteKit, Astro): run `npx wrangler setup`. It detects the framework, installs the Cloudflare adapter, writes `wrangler.jsonc`, and adds a `deploy` script; show the user what changed. For SvelteKit, then run `npx wrangler types` once, because the new `build` script checks for the generated types file.
+3. Sign in: `npx wrangler whoami`. If not signed in, the user runs `npx wrangler login` themselves (browser approval; add `--device` on a remote machine or in a container). Without an account, after the same 60-minute explanation and a yes, use `npx wrangler deploy --temporary`.
+4. Static or single-page apps need `assets.directory` (the build output) and, for client-side routers, `assets.not_found_handling: "single-page-application"` in the Wrangler config.
+5. Build with the project's script, then `npx wrangler deploy --dry-run`, then `npx wrangler deploy`.
+6. Secrets: `npx wrangler secret put <NAME>`, run by the user so they type the value into the prompt.
+
+## Next.js branch
+
+Cloudflare's recommended path for Next.js is vinext, a Vite reimplementation of Next.js that is in beta. Keep an existing OpenNext setup (`open-next.config.ts`) if the project already has one.
+
+1. `npx -y vinext@latest check` and show the user the compatibility report. If it flags features the app depends on, stop and suggest `dokploy-deploy`, which runs real Next.js.
+2. Set up with the simplest options for a first version: `npx -y vinext@latest init --platform=cloudflare --cdn-cache=none --data-cache=none --image-optimization=none`. It writes `cloudflare.config.ts` and `vite.config.ts` and adds `*:vinext` scripts; `next dev` keeps working.
+3. Sign in as in step 5.
+4. Build with `npm run build:vinext`, then `npx cf deploy --dry-run`, then deploy with `npm run deploy:vinext`.
 
 ## Common failures
 
@@ -91,6 +113,11 @@ For projects that already have a Wrangler config:
 | 404 on refresh of `/about` | Single-page-app handling is not set |
 | Blank page, assets 404 | Wrong output directory, or the app's base path is not `/` |
 | Type errors appear only locally | `cf build` skipped `tsc -b`; see preflight step 3 |
+| Deploy fails on a 100+ MiB file in `node_modules` | A plain HTML site was set up from the project root; move the site into `public/` (step 3.1) |
+| "No Cloudflare dev-server is installed" | `npm i -D wrangler@latest` (step 3.4) |
+| "cf does not support SvelteKit projects yet" | Use the Wrangler branch |
+| "Build Output Specification: no root config found" | `cf` cannot build this framework (seen with Astro); undo its changes and use the Wrangler branch |
+| "cf could not detect a project" | No frontend framework was found; usually a Node server, so use `dokploy-deploy` |
 | `Exceeded CPU time limit` | Server code needs more than 10 ms CPU per request on the free plan. Move heavy work elsewhere or use `dokploy-deploy` |
 | A Node module is missing at runtime | The library needs Node APIs Workers lacks; use `dokploy-deploy` |
 | Works locally, API calls fail live | The variable was missing at build time, or the secret was not set |

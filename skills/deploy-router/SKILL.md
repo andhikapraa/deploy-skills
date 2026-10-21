@@ -32,7 +32,8 @@ Done when you can answer: what is built, what has to keep running, and what it n
 |---|---|
 | Static HTML, or a client-side app (React/Vue/Svelte with Vite, Lovable or Bolt exports) | `cloudflare-deploy` |
 | Uses only a hosted backend (Supabase, Firebase, Appwrite Cloud) from the browser | `cloudflare-deploy` |
-| Astro, Next.js, Nuxt, SvelteKit, React Router, TanStack Start with light server code | `cloudflare-deploy` |
+| Astro, SvelteKit, Nuxt, React Router, TanStack Start with light server code | `cloudflare-deploy` |
+| Next.js that passes `npx vinext check` | `cloudflare-deploy`; otherwise `dokploy-deploy` |
 | Small API that fits Workers (fetch handlers, no long-running process) | `cloudflare-deploy` |
 | Express, Fastify, NestJS, Laravel, Django, FastAPI, Go server, or any `listen()` process | `dokploy-deploy` |
 | Needs its own Postgres/MySQL/Redis, websockets, cron workers, or file uploads to local disk | `dokploy-deploy` |
