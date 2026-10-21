@@ -65,7 +65,7 @@ Never ask the user to paste a Cloudflare API token into the chat.
 
 - Build-time public variables (`VITE_*`, `NEXT_PUBLIC_*`, `PUBLIC_*`) are read from `.env` at build time and become visible to every visitor. Never put a secret there.
 - A pure static or single-page app has no server code, so it has no server secrets. Skip the next point.
-- Secrets read by server code: declare each one in `cloudflare.config.ts` under `worker.env` as `NAME: bindings.secret()` (import `bindings` from `cf/config`). Ask the user to create `.env.secrets` with `NAME=value` lines in their editor, so the values never enter the chat. `cf init` already gitignores `.env*`; confirm with `git check-ignore .env.secrets`. Then deploy with `npx cf deploy --secrets-file .env.secrets`.
+- Secrets read by server code: declare each one in `cloudflare.config.ts` under `worker.env` as `NAME: bindings.secret()` (import `bindings` from `cf/config`). Ask the user to create `.env.secrets` with `NAME=value` lines in their editor, so the values never enter the chat. `cf init` already gitignores `.env*`; confirm with `git check-ignore .env.secrets`. Then deploy with `npx cf deploy --secrets-file .env.secrets`. Secrets persist across later deploys, so pass the file again only when a value changes.
 - Local development secrets go in `.dev.vars` or `.env`, also gitignored.
 
 ## 7. Deploy
