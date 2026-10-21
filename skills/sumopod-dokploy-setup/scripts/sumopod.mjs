@@ -208,8 +208,11 @@ async function cmdVpsFirewall(session, id) {
   const body = await gate(session, 'vps/list-firewall', { method: 'POST', payload: { id }, persist: true });
   const rules = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
   if (isJson()) return console.log(JSON.stringify(rules, null, 2));
-  if (!rules.length) return console.log('no firewall rules (or firewall disabled)');
-  for (const r of rules) console.log(JSON.stringify(r));
+  // Right after creation the list can be empty for a short while; re-run.
+  if (!rules.length) return console.log('no firewall rules yet (a new VPS can take a minute to show them; re-run)');
+  for (const r of rules) {
+    console.log(`${r.protocol || '?'}  ports ${r.portRange || '?'}  from ${r.sourceIPAddress || '?'}  ${r.remarks || ''}`.trimEnd());
+  }
 }
 
 async function cmdProviders(session) {

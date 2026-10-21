@@ -57,7 +57,8 @@ App kamu butuh server yang jalan terus?
 - Di provider Tencent, kuota egress bulanan itu batas keras. Kalau habis, VPS mati sampai bulan depan.
 - User default Ubuntu Tencent itu `ubuntu`, bukan `root`.
 - Port 22, 80, 443, dan 3000 harus kebuka di firewall SumoPod.
-- Domain gratis `traefik.me` dari Dokploy cuma HTTP. Buat HTTPS, pakai domain sendiri.
+- Domain gratis dari Dokploy (`*.sslip.io`) udah bisa HTTPS dengan sertifikat Let's Encrypt, jadi nggak wajib beli domain buat versi pertama.
+- Dokploy sendiri makan sekitar 1,3 GB RAM. Di paket 2 GB, build app Node kecil masih jalan tapi pakai swap. Buat app yang lebih berat, pilih paket 4 GB.
 
 ## Keamanan
 

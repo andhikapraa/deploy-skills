@@ -30,6 +30,8 @@ Commands look like `dokploy <domain> <action> --flag value`. Dokploy's API chang
 
 Some actions mark nullable fields as required (for example `saveBuildType` requires `--dockerfile`, `--dockerContextPath`, `--dockerBuildStage`, `--herokuVersion`, `--railpackVersion`). Pass `null` for the ones that do not apply, such as `--dockerfile null`. Booleans take `--flag=true` or `--flag=false`.
 
+Exception: for the `railpack` build type, `--railpackVersion` must be a real version. `null` makes the build download railpack `vnull` and fail in seconds. Use the version the server defaults to, read with `dokploy application one --applicationId <id>` after creating any app (Dokploy v0.30.8 uses `0.15.4`).
+
 Actions named `delete`, `remove`, `stop`, or `kill` take effect immediately. Ask the user first, naming the exact resource.
 
 ## 1. Source
@@ -55,7 +57,7 @@ Check `dokploy application saveBuildType --help`. Choose:
 | Project | Build type |
 |---|---|
 | Has a `Dockerfile` | `dockerfile` |
-| Node, Python, PHP, Go without a Dockerfile | `railpack` (the successor to Nixpacks), or `nixpacks` if railpack is unavailable |
+| Node, Python, PHP, Go without a Dockerfile | `railpack` (the successor to Nixpacks) with `--railpackVersion 0.15.4` or the server's current default, never `null`; or `nixpacks` if railpack is unavailable |
 | Static site or single-page app that only needs serving | `static` with `--publishDirectory dist` (the build output) and `--isStaticSpa=true` for client-side routers; this serves on port `80` |
 
 Note the port the app listens on (for example `3000` for Next.js and most Express apps, `4321` for Astro, `80` for static). The app should listen on `0.0.0.0` and read the port from `PORT` when it can.
@@ -82,7 +84,7 @@ MySQL, MariaDB, MongoDB, and Redis follow the same pattern under their own domai
 
 ## 7. Domain
 
-- **No domain yet:** get a free `traefik.me` host with `dokploy domain generateDomain --appName <the application's appName>`, then `dokploy domain create --applicationId <id> --host <generated host> --path / --port <port> --https=false --certificateType none`. These domains are HTTP only.
+- **No domain yet:** get a free host with `dokploy domain generateDomain --appName <the application's appName>`. Current Dokploy returns an `sslip.io` name such as `<app>-<hash>-43-173-20-68.sslip.io`, which resolves to the VPS IP and can get a real Let's Encrypt certificate, so create it with HTTPS on: `dokploy domain create --applicationId <id> --host <generated host> --path / --port <port> --https=true --certificateType letsencrypt`. The certificate arrives within about a minute, and HTTP redirects to HTTPS. Older Dokploy versions return a `traefik.me` host instead; those work only over HTTP, so use `--https=false --certificateType none` for them.
 - **Own domain:** the user adds an A record pointing the domain or subdomain to the VPS IP. Then `dokploy domain create --applicationId <id> --host <domain> --path / --port <port> --https=true --certificateType letsencrypt`. The certificate is issued once DNS resolves to the server.
 
 Application domain changes apply without a redeploy.
@@ -96,14 +98,15 @@ Application domain changes apply without a redeploy.
 ## Redeploy and logs
 
 - Private repository with the GitHub App: every push to the branch redeploys.
-- Public repository: run `dokploy application deploy` again, or add the Dokploy webhook URL from the application's Deployments tab to the GitHub repository's webhooks.
+- Public repository on the custom git provider: a push does **not** redeploy on its own. Run `dokploy application deploy` again, or add the Dokploy webhook URL from the application's Deployments tab to the GitHub repository's webhooks.
 - Rollback: redeploy an earlier commit, or use the Rollbacks feature in the panel when it is enabled.
 
 ## Common failures
 
 | Symptom | Cause and fix |
 |---|---|
-| Build stops with `Killed` or exit 137 | Out of memory on a 2 GB server. Confirm swap exists, close other builds, or upgrade the VPS |
+| Build fails in seconds downloading `railpack-vnull` | `--railpackVersion` was set to `null`; set it to `0.15.4` (or the server default) with `saveBuildType` and redeploy |
+| Build stops with `Killed` or exit 137 | Out of memory on a 2 GB server. Dokploy itself uses about 1.3 GB, and a small Node build pushed swap to about 850 MB in testing. Confirm swap exists, close other builds, or upgrade to a 4 GB plan |
 | `Bad Gateway` on the domain | Wrong container port in the domain, or the app listens on `localhost` instead of `0.0.0.0` |
 | App crashes on start | Missing environment variable or failed database connection; read the runtime logs |
 | Domain does not resolve | DNS not propagated yet, or the A record points to the wrong IP |

@@ -45,14 +45,16 @@ If SSH does not work, the user can open the Web Console from the VPS page and pa
 
 Run each over `ssh <user>@<ip> '<command>'` and show the output:
 
-1. Check memory and swap: `free -h && swapon --show`.
-2. If there is no swap, add 2 GB. Builds on a 2 GB server can run out of memory without it:
-   `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab`
+1. Check that `sudo` works without a password: `sudo -n true && echo ok`. It does for `ubuntu` on SumoPod's Tencent images. If it asks for a password, have the user run the commands below themselves in their own SSH session.
+2. Check memory and swap: `free -h && swapon --show`. SumoPod's Tencent Ubuntu 24.04 image already ships a 2 GB `/swap.img`, so usually nothing to do. Only if there is no swap at all, add 2 GB, because builds on a 2 GB server can run out of memory without it:
+   `[ -f /swapfile ] || { sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab; }; }`
 3. Check that ports 80, 443, and 3000 are free: `sudo ss -tlnp | grep -E ':(80|443|3000)\s'`. No output means free. If something is listening, stop and ask the user; the Dokploy installer fails on a busy port.
 
 ## 5. Install Dokploy
 
-`ssh <user>@<ip> 'curl -sSL https://dokploy.com/install.sh | sudo sh'`
+Download first, then run, so a failed download never runs half a script:
+
+`ssh <user>@<ip> 'curl -fsSL https://dokploy.com/install.sh -o /tmp/dokploy-install.sh && sudo sh /tmp/dokploy-install.sh'`
 
 It installs Docker if needed and takes a few minutes. When it finishes it prints the panel URL, `http://<ip>:3000`.
 
@@ -60,6 +62,7 @@ It installs Docker if needed and takes a few minutes. When it finishes it prints
 
 1. Open `http://<ip>:3000` right away and create the admin account. Until someone does, anyone who finds the URL can claim the server.
 2. Use a strong, unique password.
+   After sign-up, Dokploy shows a welcome and tutorial walkthrough. Tell the user they can click Next through it, or use Skip at the bottom left; nothing in it is required for this setup.
 3. Create an API key for the agent: in Dokploy, open **Settings → Profile → API/CLI** and generate a key.
 4. Save it with `dokploy login`. The user runs this in a separate terminal window, not through the agent: the key prompt is hidden and needs a real terminal, which Claude Code's `!` prefix and agent Bash tools do not provide.
    ```bash
