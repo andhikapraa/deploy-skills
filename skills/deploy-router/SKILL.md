@@ -60,4 +60,4 @@ Tell the user, in at most three lines: the chosen route, why, and what they need
 
 ## Completion
 
-Done when the route is chosen with one stated reason, the readiness items pass or the user has accepted the remaining gaps, and the next skill has started.
+Done when the route is chosen with a stated reason, the readiness items pass or the user has accepted the remaining gaps, and the next skill has started.
