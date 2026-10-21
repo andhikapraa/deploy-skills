@@ -56,7 +56,7 @@ Check `dokploy application saveBuildType --help`. Choose:
 
 | Project | Build type |
 |---|---|
-| Has a `Dockerfile` | `dockerfile` |
+| Has a `Dockerfile` | `dockerfile` with `--dockerfile Dockerfile --dockerContextPath .` (paths relative to the build path) and `null` for the rest. Read the Dockerfile first: its `EXPOSE`, required env vars, and any migrate step decide steps 4 and 5 |
 | Node, Python, PHP, Go without a Dockerfile | `railpack` (the successor to Nixpacks) with `--railpackVersion 0.15.4` or the server's current default, never `null`; or `nixpacks` if railpack is unavailable |
 | Static site or single-page app that only needs serving | `static` with `--publishDirectory dist` (the build output) and `--isStaticSpa=true` for client-side routers; this serves on port `80` |
 
@@ -113,6 +113,8 @@ Application domain changes apply without a redeploy.
 | Build stops with `Killed` or exit 137 | Out of memory on a 2 GB server. Dokploy itself uses about 1.3 GB, and a small Node build pushed swap to about 850 MB in testing. Confirm swap exists, close other builds, or upgrade to a 4 GB plan |
 | `Bad Gateway` on the domain | Wrong container port in the domain, or the app listens on `localhost` instead of `0.0.0.0` |
 | App crashes on start | Missing environment variable or failed database connection; read the runtime logs |
+| Health check passes but sign-up, login, or saving returns 500 | Migrations have not run, so the tables do not exist; see step 5.5 |
+| Login works locally but not live (auth apps such as Better Auth) | The auth base URL env var (for example `BETTER_AUTH_URL`) must be the public `https://` domain from step 7, and behind Traefik set the client-IP header the app expects (for example `TRUSTED_IP_HEADER=x-forwarded-for`) |
 | Domain does not resolve | DNS not propagated yet, or the A record points to the wrong IP |
 | HTTPS certificate not issued | DNS does not point to the server yet, or ports 80/443 are closed in the SumoPod firewall |
 

@@ -35,9 +35,10 @@ With the CLI signed in, `sumopod vps firewall <id>` lists the current rules (the
 
 Prefer an SSH key so the agent can run commands without a password prompt:
 
-1. If `~/.ssh/id_ed25519.pub` does not exist, run `ssh-keygen -t ed25519` (the user may press Enter for every prompt).
-2. The user runs `ssh-copy-id <user>@<ip>` and types the VPS password into the terminal prompt. On Windows PowerShell, where `ssh-copy-id` is missing, use: `type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@<ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"`.
-3. Test: `ssh -o BatchMode=yes <user>@<ip> 'whoami && lsb_release -ds'`.
+1. If `~/.ssh/id_ed25519.pub` does not exist, run `ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519`. The agent can run this itself; never overwrite an existing key.
+2. Record the server's host key, so later non-interactive commands do not stop at "Host key verification failed": `ssh-keygen -R <ip> >/dev/null 2>&1; ssh-keyscan -T 10 -t ed25519 <ip> >> ~/.ssh/known_hosts`. The `-R` clears an old key for the same IP, which a reset VPS keeps.
+3. The user runs `ssh-copy-id <user>@<ip>` in their own terminal and types the VPS password at the prompt. On Windows PowerShell, where `ssh-copy-id` is missing, use: `type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@<ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"`.
+4. Test: `ssh -o BatchMode=yes -o ConnectTimeout=10 <user>@<ip> 'whoami && lsb_release -ds'`. It must print the username and Ubuntu 24.04 without asking for anything.
 
 If SSH does not work, the user can open the Web Console from the VPS page and paste the commands below one at a time.
 
