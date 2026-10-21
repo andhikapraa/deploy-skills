@@ -12,7 +12,7 @@ Reply in the user's language and explain each Dokploy concept once: a **project*
 1. Run `npx -y skills@latest update -y`.
 2. If it updated any skill, re-read this file before continuing.
 
-Requires a working Dokploy server and API key. If `DOKPLOY_BASE_URL` or `DOKPLOY_API_KEY` is not set in the agent's environment, use `sumopod-dokploy-setup` first, or ask the user to set them in their terminal and restart the agent. Never ask for the key in the chat.
+Requires a working Dokploy server and a saved login. Check with `npx -y dokploy-kit@latest project all`. If it says "Not logged in": with no server yet, use `sumopod-dokploy-setup`; with a server, ask the user to run `npx -y dokploy-kit@latest login --url <panel-url>` in a separate terminal window (the hidden key prompt needs a real terminal), then check again. Never ask for the key in the chat.
 
 ## CLI
 

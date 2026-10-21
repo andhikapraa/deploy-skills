@@ -58,16 +58,17 @@ It installs Docker if needed and takes a few minutes. When it finishes it prints
 
 1. Open `http://<ip>:3000` right away and create the admin account. Until someone does, anyone who finds the URL can claim the server.
 2. Use a strong, unique password.
-3. Create an API key for the agent under the user's profile or Settings, in the API Keys section. Dokploy sends it as the `x-api-key` header.
-4. The user stores it in their own terminal, not in the chat and not in the repository:
-   - macOS/Linux: `export DOKPLOY_BASE_URL="http://<ip>:3000/api"` and `export DOKPLOY_API_KEY="<key>"`, added to `~/.zshrc` or `~/.bashrc` to persist.
-   - Windows PowerShell: `$env:DOKPLOY_BASE_URL="http://<ip>:3000/api"` and `$env:DOKPLOY_API_KEY="<key>"`.
-   Then restart the agent from that terminal so it inherits the variables.
+3. Create an API key for the agent: in Dokploy, open **Settings → Profile → API/CLI** and generate a key.
+4. Save it with `dokploy login`. The user runs this in a separate terminal window, not through the agent: the key prompt is hidden and needs a real terminal, which Claude Code's `!` prefix and agent Bash tools do not provide.
+   ```bash
+   npx -y dokploy-kit@latest login --url http://<ip>:3000
+   ```
+   It asks for the key (typing is hidden), checks it against the server, and saves the URL and key to `~/.config/dokploy/config.json` (mode 600). The same command works on macOS, Linux, and Windows, and every agent reads the saved file, including desktop apps such as Antigravity. Never ask for the key in the chat or pass it as a command argument.
 
 ## 7. Verify
 
 1. `curl -s -o /dev/null -w '%{http_code}\n' http://<ip>:3000` returns `200` or a redirect code.
-2. `npx -y dokploy-kit@latest project all` returns JSON (an empty list is fine). This confirms the API key works.
+2. `npx -y dokploy-kit@latest project all` returns JSON (an empty list is fine). This confirms the saved login works from the agent. If it says "Not logged in", step 6.4 has not been done yet.
 
 ## Later hardening (mention, do not do unprompted)
 
@@ -77,4 +78,4 @@ It installs Docker if needed and takes a few minutes. When it finishes it prints
 
 ## Completion
 
-Done when the panel loads, the admin account exists, the API key works from the agent's terminal, and the user knows the egress limit and the firewall ports. Continue with `dokploy-deploy`.
+Done when the panel loads, the admin account exists, `dokploy login` succeeded and `project all` works from the agent, and the user knows the egress limit and the firewall ports. Continue with `dokploy-deploy`.

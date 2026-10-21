@@ -61,7 +61,8 @@ App kamu butuh server yang jalan terus?
 
 ## Keamanan
 
-- Jangan pernah paste API key atau password ke chat agent. Simpan di terminal sebagai environment variable.
+- Jangan pernah paste API key atau password ke chat agent.
+- API key Dokploy disimpan pakai `npx -y dokploy-kit@latest login --url http://IP:3000`, dijalanin di jendela terminal terpisah (bukan lewat agent). Key-nya diketik tersembunyi dan disimpan ke `~/.config/dokploy/config.json`, terus semua agent bisa baca dari situ.
 - Variabel `VITE_*`, `NEXT_PUBLIC_*`, dan `PUBLIC_*` bakal kelihatan di browser semua pengunjung. Jangan taruh secret di situ.
 - Setelah install Dokploy, langsung buka panelnya dan bikin akun admin. Sebelum itu, siapa pun yang nemu URL-nya bisa ngambil alih server kamu.
 
