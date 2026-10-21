@@ -39,7 +39,7 @@ Actions named `delete`, `remove`, `stop`, or `kill` take effect immediately. Ask
 The repository must be on GitHub. Choose the branch:
 
 - **Public repository:** use the custom git provider with the HTTPS clone URL. No GitHub connection is needed.
-- **Private repository:** the user connects GitHub once in the Dokploy panel under Settings, then Git, then GitHub, which creates a GitHub App. After that, use the GitHub provider action. Pushes then trigger automatic deploys.
+- **Private repository:** the user connects GitHub once in the Dokploy panel: Settings → Git → GitHub → Create GitHub App, then Install it on GitHub. Tell them to choose **Only select repositories** and pick just the repository to deploy; "All repositories" lets the Dokploy server clone every repo they own. Then find the provider with `dokploy github githubProviders` (keep its `githubId`) and confirm with `dokploy github testConnection --githubId <id>`, which reports how many repositories it can see. After that, use the GitHub provider action. Pushes then trigger automatic deploys.
 
 ## 2. Create the application
 
@@ -72,7 +72,11 @@ Note the port the app listens on (for example `3000` for Next.js and most Expres
 2. `dokploy postgres deploy --postgresId <id>`.
 3. Read the internal connection details from `dokploy postgres one --postgresId <id>`. Apps in the same Dokploy server connect through the internal host name, not the public IP.
 4. Save `DATABASE_URL=postgresql://<user>:<password>@<internal-host>:5432/<db>` in the application's environment.
-5. Run migrations the way the project expects, for example as part of the start command.
+5. Run migrations the way the project expects. Dokploy has no pre-deploy hook, so pick one:
+   - The start command runs them (for example `npm run migrate && npm start`): nothing extra.
+   - The image has a separate migrate entry point and no shell (distroless images, for example `./server migrate`): after the first deploy, run it once over SSH with the app's own image, env, and network:
+     `ssh <user>@<ip> 'IMG=$(sudo docker service inspect <appName> --format "{{.Spec.TaskTemplate.ContainerSpec.Image}}"); sudo docker service inspect <appName> --format "{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}" | grep . > /tmp/app.env; sudo docker run --rm --network dokploy-network --env-file /tmp/app.env "$IMG" ./server migrate; rm -f /tmp/app.env'`
+     Repeat it after any deploy that adds a migration. Until migrations run, the app can start and pass its health check while every database request returns 500.
 
 MySQL, MariaDB, MongoDB, and Redis follow the same pattern under their own domains.
 
@@ -97,7 +101,7 @@ Application domain changes apply without a redeploy.
 
 ## Redeploy and logs
 
-- Private repository with the GitHub App: every push to the branch redeploys.
+- Private repository with the GitHub App: every push to the branch redeploys (verified: a push started a deploy within about 15 seconds, and data in the database was kept).
 - Public repository on the custom git provider: a push does **not** redeploy on its own. Run `dokploy application deploy` again, or add the Dokploy webhook URL from the application's Deployments tab to the GitHub repository's webhooks.
 - Rollback: redeploy an earlier commit, or use the Rollbacks feature in the panel when it is enabled.
 
