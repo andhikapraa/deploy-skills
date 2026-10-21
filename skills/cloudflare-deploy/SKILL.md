@@ -91,10 +91,10 @@ Never ask the user to paste a Cloudflare API token into the chat.
 For projects with a Wrangler config, and for SvelteKit and Astro:
 
 1. Use the project's Wrangler, updated: `npm i -D wrangler@latest`, then `npx wrangler --version`.
-2. No Wrangler config yet (SvelteKit, Astro): run `npx wrangler setup`. It detects the framework, installs the Cloudflare adapter, writes `wrangler.jsonc`, and adds a `deploy` script; show the user what changed. For SvelteKit, then run `npx wrangler types` once, because the new `build` script checks for the generated types file.
+2. No Wrangler config yet (SvelteKit, Astro): run `npx wrangler setup`. It detects the framework, installs the Cloudflare adapter, writes `wrangler.jsonc`, and adds a `deploy` script; show the user what changed. For SvelteKit, the new `build` script starts with `wrangler types --check`: run `npx wrangler types` now, and again whenever `wrangler.jsonc` changes (including the Worker name).
 3. Sign in: `npx wrangler whoami`. If not signed in, the user runs `npx wrangler login` themselves (browser approval; add `--device` on a remote machine or in a container). Without an account, after the same 60-minute explanation and a yes, use `npx wrangler deploy --temporary`.
 4. Static or single-page apps need `assets.directory` (the build output) and, for client-side routers, `assets.not_found_handling: "single-page-application"` in the Wrangler config.
-5. Build with the project's script, then `npx wrangler deploy --dry-run`, then `npx wrangler deploy`.
+5. Build with the project's script and stop if it fails. `wrangler deploy` uploads whatever is already in the output folder, so a failed build would ship the previous build without any error. Then `npx wrangler deploy --dry-run`, then `npx wrangler deploy`.
 6. Secrets: `npx wrangler secret put <NAME>`, run by the user so they type the value into the prompt.
 
 ## Next.js branch
@@ -102,7 +102,7 @@ For projects with a Wrangler config, and for SvelteKit and Astro:
 Cloudflare's recommended path for Next.js is vinext, a Vite reimplementation of Next.js that is in beta. Keep an existing OpenNext setup (`open-next.config.ts`) if the project already has one.
 
 1. `npx -y vinext@latest check` and show the user the compatibility report. If it flags features the app depends on, stop and suggest `dokploy-deploy`, which runs real Next.js.
-2. Set up with the simplest options for a first version: `npx -y vinext@latest init --platform=cloudflare --cdn-cache=none --data-cache=none --image-optimization=none`. It writes `cloudflare.config.ts` and `vite.config.ts` and adds `*:vinext` scripts; `next dev` keeps working.
+2. Set up. `vinext init` refuses to guess cache options, so pass them. Use `npx -y vinext@latest init --platform=cloudflare --cdn-cache=data-cache --data-cache=kv --image-optimization=none`. The app router template uses ISR, and `vinext-cloudflare deploy` stops when no cache is configured, so do not choose `--data-cache=none` unless `vinext check` reports no ISR. The KV namespace is created on the first deploy, on the free plan. It writes `cloudflare.config.ts` and `vite.config.ts` and adds `*:vinext` scripts; `next dev` keeps working.
 3. Sign in as in step 5.
 4. Build with `npm run build:vinext`, then `npx cf deploy --dry-run`, then deploy with `npm run deploy:vinext`.
 
@@ -117,6 +117,8 @@ Cloudflare's recommended path for Next.js is vinext, a Vite reimplementation of 
 | "No Cloudflare dev-server is installed" | `npm i -D wrangler@latest` (step 3.4) |
 | "cf does not support SvelteKit projects yet" | Use the Wrangler branch |
 | "Build Output Specification: no root config found" | `cf` cannot build this framework (seen with Astro); undo its changes and use the Wrangler branch |
+| "Types at worker-configuration.d.ts are out of date" (SvelteKit) | `npx wrangler types`, then rebuild |
+| vinext: "no cache adapter is configured" | Re-run `vinext init` with `--cdn-cache=data-cache --data-cache=kv` |
 | "cf could not detect a project" | No frontend framework was found; usually a Node server, so use `dokploy-deploy` |
 | `Exceeded CPU time limit` | Server code needs more than 10 ms CPU per request on the free plan. Move heavy work elsewhere or use `dokploy-deploy` |
 | A Node module is missing at runtime | The library needs Node APIs Workers lacks; use `dokploy-deploy` |
