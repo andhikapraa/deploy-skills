@@ -16,18 +16,20 @@ This skill changes a remote server. Confirm the server IP with the user before t
 
 ## 1. Buy the VPS (user, in the SumoPod dashboard)
 
-Guide the user through Dashboard → VPS → Create:
+Buying happens only in the dashboard: SumoPod requires a captcha to create a VPS, and it spends the user's balance. Never try to create, renew, or upgrade a VPS from the terminal.
 
-- Provider: Tencent or Cloudeka by Lintasarta. Region: Jakarta for Indonesian users.
-- OS: Ubuntu Server 24.04 LTS.
-- Plan: at least 2 vCPU and 2 GB RAM. Dokploy needs 2 GB RAM and 30 GB disk. The 2 vCPU / 2 GB / 40 GB plan is the minimum.
-- Warn: on Tencent, monthly egress bandwidth is a hard cap. When it runs out, the VPS shuts down until the next month. Usage is in the VPS Usage tab.
+`scripts/sumopod.mjs` in this skill's folder is a read-only SumoPod CLI. Below, `sumopod` means `node <this skill's folder>/scripts/sumopod.mjs`. It is optional: if the user does not want to paste a session, skip to the manual path at the end of this step.
 
-Then collect from the VPS Access tab: the public IP and the username. On Tencent Ubuntu the username is `ubuntu`, not `root`. The password stays with the user; never ask for it in the chat.
+1. **Sign in the CLI.** The user signs in at sumopod.com, opens the browser console (F12, or Cmd+Opt+I on Mac), runs `copy(localStorage.getItem("sumopod-auth"))`, then runs `sumopod login` in a separate terminal window and pastes it. The session grants full access to their account: never ask for it in the chat. It ends about 1 hour after the browser sign-in, so take it right before use; on "token refresh failed", repeat this step.
+2. **Check balance and pick a plan.** Run `sumopod whoami` for the balance, then `sumopod plans --region jakarta --provider tencent` (also `--provider cloudeka`, or `--region singapore`). Show the plans marked "cukup buat Dokploy" (at least 2 GB RAM and 30 GB disk) with their prices, and let the user choose. Recommend the cheapest one that fits. On Tencent, warn that the listed monthly egress is a hard cap: when it runs out, the VPS shuts down until the next month.
+3. **The user buys it** at https://sumopod.com/dashboard/vps/create: the chosen provider and region, OS **Ubuntu Server 24.04 LTS 64bit** (not an app image such as "Hermes (Ubuntu 24.04)"), the chosen plan, then the captcha and Create.
+4. **Wait for it.** Run `sumopod vps wait`. It polls every 15 seconds and prints `ready: <user>@<ip>` once the newest VPS is running with an IP. On Tencent Ubuntu the username is `ubuntu`, not `root`. Confirm that IP with the user before step 3.
+
+Manual path: the user reads the public IP and username from the VPS Access tab and tells the agent. The VPS password stays with the user; never ask for it in the chat.
 
 ## 2. Firewall (user, in the SumoPod dashboard)
 
-A new VPS has an "Allow All Request" rule in the Firewall tab. Leave it in place during setup. If the user tightens it later, these inbound TCP ports must stay open: 22 (SSH), 80 and 443 (websites), 3000 (Dokploy panel). Removing all rules locks out SSH; the fix is to re-add a rule from the dashboard and use the Web Console.
+With the CLI signed in, `sumopod vps firewall <id>` lists the current rules (the id is in the `vps wait` output). A new VPS has an "Allow All Request" rule in the Firewall tab. Leave it in place during setup. If the user tightens it later, these inbound TCP ports must stay open: 22 (SSH), 80 and 443 (websites), 3000 (Dokploy panel). Removing all rules locks out SSH; the fix is to re-add a rule from the dashboard and use the Web Console.
 
 ## 3. Connect
 

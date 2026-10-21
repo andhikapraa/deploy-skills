@@ -6,12 +6,13 @@ Butuh Node.js 22 atau lebih baru. Tanpa dependency.
 
 ## Pakai
 
+Script ini ikut ke-install bareng skill `sumopod-dokploy-setup`, di folder `scripts/`:
+
 ```bash
-git clone https://github.com/andhikapraa/deploy-skills
-node deploy-skills/sumopod-kit/sumopod.mjs help
+node .agents/skills/sumopod-dokploy-setup/scripts/sumopod.mjs help     # install di level project
 ```
 
-Di bawah, `sumopod` artinya `node deploy-skills/sumopod-kit/sumopod.mjs`.
+Di bawah, `sumopod` artinya `node <folder skill>/scripts/sumopod.mjs`.
 
 ## Login
 
@@ -36,7 +37,9 @@ Sesi ini sama kuatnya dengan login dashboard. Jangan tempel ke chat, jangan comm
 |---|---|
 | `sumopod whoami` | Akun dan saldo |
 | `sumopod providers` | Provider VPS dan region yang tersedia |
+| `sumopod plans [--region jakarta] [--provider tencent]` | Paket dan harga buat Ubuntu 24.04, plus tanda paket yang cukup buat Dokploy |
 | `sumopod vps list` | Daftar VPS: nama, status, IP, username, spesifikasi |
+| `sumopod vps wait [--timeout 15]` | Nunggu VPS terbaru jalan dan dapat IP, abis itu nampilin `user@ip` |
 | `sumopod vps get <id>` | Detail satu VPS, termasuk pemakaian bandwidth |
 | `sumopod vps firewall <id>` | Aturan firewall VPS |
 

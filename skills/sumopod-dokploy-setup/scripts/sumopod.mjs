@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// sumopod-kit — read-only CLI over SumoPod's dashboard data, with auto-refreshing auth.
+// sumopod — read-only CLI over SumoPod's dashboard data. Ships inside the sumopod-dokploy-setup skill.
 //
 // Auth model: SumoPod logs in through Supabase. Its browser session (localStorage
 // key "sumopod-auth") holds an access_token and a refresh_token. This CLI stores that
@@ -219,13 +219,85 @@ async function cmdProviders(session) {
     : list.map((p) => `${p.name}  enabled=${p.is_enabled}  available=${p.is_available}  regions=${(p.available_regions || []).join(',')}`).join('\n'));
 }
 
+// Plans and prices for one provider + region, for an Ubuntu image. Mirrors the
+// dashboard's create page: vps/images gives the OS images, vps/options the plans.
+async function cmdPlans(session, flags) {
+  const region = flags.region || 'jakarta';
+  const provider = flags.provider || 'tencent';
+  const imagesUrl = `vps/images?${new URLSearchParams({ region, provider })}`;
+  const images = await gate(session, imagesUrl, { method: 'GET', persist: true });
+  const imageList = Array.isArray(images) ? images : (images?.data || []);
+  // Plain Ubuntu only: app images such as "Hermes (Ubuntu 24.04)" also mention it.
+  const ubuntu = imageList.find((i) => i.slug === 'ubuntu_24_04') || null;
+  const osType = ubuntu?.os_type || 'linux';
+  const optsUrl = `vps/options?${new URLSearchParams({ region, os_type: osType, provider })}`;
+  const opts = await gate(session, optsUrl, { method: 'GET', persist: true });
+  // vps/options reports memory and storage in GB; egress ("bandwith", sic) in GB/month.
+  const plans = (Array.isArray(opts) ? opts : (opts?.data || []))
+    .filter((o) => o.is_show !== false && o.is_enable !== false)
+    .map((o) => ({
+      id: o.id,
+      cpu: o.cpu,
+      memory_gb: o.memory,
+      storage_gb: o.storage,
+      egress_gb_per_month: o.egress_bandwidth ?? o.egress_bandwith ?? null,
+      price_idr: o.price_in_idr,
+      available: o.is_available !== false && o.is_out_stock !== true,
+    }));
+  const out = { region, provider, ubuntu_24_04_image: ubuntu ? ubuntu.name || ubuntu.slug : null, plans };
+  if (isJson()) return console.log(JSON.stringify(out, null, 2));
+  console.log(`${provider} / ${region}  image: ${out.ubuntu_24_04_image || '(Ubuntu 24.04 not listed)'}`);
+  for (const p of plans) {
+    // Dokploy needs 2 GB RAM and 30 GB disk.
+    const fits = p.available && p.memory_gb >= 2 && p.storage_gb >= 30 ? '  <- cukup buat Dokploy' : '';
+    const egress = p.egress_gb_per_month ? `, egress ${p.egress_gb_per_month} GB` : '';
+    console.log(`  ${p.cpu} vCPU / ${p.memory_gb} GB RAM / ${p.storage_gb} GB${egress}  Rp ${Number(p.price_idr).toLocaleString('id-ID')}/bulan${p.available ? '' : '  (habis)'}${fits}`);
+  }
+  console.log('Buy in the dashboard: https://sumopod.com/dashboard/vps/create');
+}
+
+// Wait until the newest VPS is running with an IP, so the agent can continue
+// right after the user finishes buying in the dashboard.
+async function cmdVpsWait(session, flags) {
+  const timeoutMin = Number(flags.timeout || 15);
+  const deadline = Date.now() + timeoutMin * 60_000;
+  let last = '';
+  for (;;) {
+    const rows = await supa(session, `vps?select=${VPS_COLS},created_at&order=created_at.desc&limit=1`, { persist: true });
+    const v = Array.isArray(rows) && rows[0] ? shapeVps(rows[0]) : null;
+    const state = v ? `${v.name} [${v.status}] ${v.ip || 'no IP yet'}` : 'no VPS yet';
+    if (state !== last) { process.stderr.write(`${new Date().toLocaleTimeString()}  ${state}\n`); last = state; }
+    if (v && v.ip && /^(active|running|online)$/i.test(String(v.status))) {
+      return console.log(isJson() ? JSON.stringify(v, null, 2) : `ready: ${v.username}@${v.ip}  (${v.os}, ${v.cpu} vCPU / ${v.ram_mb} MB, id=${v.id})`);
+    }
+    if (Date.now() > deadline) die(`no running VPS with an IP after ${timeoutMin} min (last: ${state})`);
+    await new Promise((r) => setTimeout(r, 15_000));
+  }
+}
+
+function parseFlags(argv) {
+  const flags = {};
+  for (let i = 0; i < argv.length; i++) {
+    const m = /^--([a-z-]+)(?:=(.*))?$/.exec(argv[i]);
+    if (!m) continue;
+    if (m[2] !== undefined) flags[m[1]] = m[2];
+    else if (argv[i + 1] && !argv[i + 1].startsWith('--')) flags[m[1]] = argv[++i];
+    else flags[m[1]] = true;
+  }
+  return flags;
+}
+
 function usage() {
-  console.log(`sumopod — read-only SumoPod CLI (auto-refreshing auth)
+  console.log(`sumopod — read-only SumoPod CLI (session lasts about 1 hour)
 
 Usage:
-  sumopod login                 Paste your browser session once (auto-refreshes after that)
+  sumopod login                 Paste your browser session (valid ~1 hour from browser sign-in)
   sumopod whoami                Show the signed-in account and balance
+  sumopod plans [--region jakarta|singapore] [--provider tencent]
+                                VPS plans and prices for Ubuntu 24.04
   sumopod vps list              List your VPS instances
+  sumopod vps wait [--timeout 15]
+                                Wait for the newest VPS to be running with an IP
   sumopod vps get <id>          Show one VPS (the password stays in the dashboard)
   sumopod vps firewall <id>     List firewall rules for a VPS
   sumopod providers             List VPS providers and regions
@@ -239,7 +311,8 @@ Creating, renewing, upgrading, or deleting a VPS is only in the dashboard.`);
 
 async function main() {
   const args = process.argv.slice(2).filter((a) => a !== '--json');
-  const [cmd, sub, arg] = args;
+  const flags = parseFlags(args);
+  const [cmd, sub, arg] = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && /^--[a-z-]+$/.test(args[i - 1]) && flags[args[i - 1].slice(2)] === a));
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') return usage();
   if (cmd === 'login') return cmdLogin();
 
@@ -247,11 +320,13 @@ async function main() {
   switch (cmd) {
     case 'whoami': return cmdWhoami(session);
     case 'providers': return cmdProviders(session);
+    case 'plans': return cmdPlans(session, flags);
     case 'vps':
       if (sub === 'list') return cmdVpsList(session);
+      if (sub === 'wait') return cmdVpsWait(session, flags);
       if (sub === 'get') return cmdVpsGet(session, arg);
       if (sub === 'firewall') return cmdVpsFirewall(session, arg);
-      return die('usage: sumopod vps <list|get|firewall>');
+      return die('usage: sumopod vps <list|wait|get|firewall>');
     default:
       return die(`unknown command: ${cmd}. Run: sumopod help`);
   }
