@@ -5,13 +5,13 @@ Agent skills buat deploy versi pertama MVP kamu. Kamu cukup bilang "deploy app i
 | Skill | Gunanya |
 |---|---|
 | `deploy-router` | Baca project, pilih Cloudflare atau Dokploy, cek build, `.env`, dan secret |
-| `cloudflare-deploy` | Deploy gratis ke Cloudflare Workers, dapat URL `*.workers.dev` dengan HTTPS |
+| `cloudflare-deploy` | Deploy gratis ke Cloudflare Workers pakai CLI `cf`, dapat URL `*.workers.dev` dengan HTTPS |
 | `sumopod-dokploy-setup` | Siapin VPS SumoPod dan install Dokploy |
 | `dokploy-deploy` | Deploy repo GitHub ke Dokploy, plus database dan domain |
 
 ## Install
 
-Butuh Node.js 22 atau lebih baru. Jalankan di folder project kamu:
+Butuh Node.js 22.18 atau lebih baru. Jalankan di folder project kamu:
 
 ```bash
 # Claude Code
@@ -24,7 +24,7 @@ npx skills add andhikapraa/deploy-skills -a antigravity
 npx skills add andhikapraa/deploy-skills -a claude-code -a antigravity
 ```
 
-Tambah `-g` kalau mau skill-nya ada di semua project.
+Install di level project (tanpa `-g`). Setiap mulai, skill-nya otomatis jalanin `npx skills update -y` buat narik versi terbaru dari repo ini. Install global juga bisa, tapi pengecekan update-nya lewat API GitHub yang dibatasi 60 request per jam per IP, jadi gampang mentok kalau banyak orang pakai Wi-Fi yang sama.
 
 ## Pakai
 
@@ -33,6 +33,8 @@ Buka agent di folder project, lalu ketik:
 > Deploy app ini dong. Pakai skill deploy-router.
 
 Agent bakal nanya dulu sebelum ngelakuin hal yang kelihatan publik, misalnya deploy pertama.
+
+Belum punya akun Cloudflare? Agent bisa deploy pakai akun sementara. Kamu tinggal buka link claim yang dikasih dalam 60 menit biar app-nya nggak dihapus.
 
 ## Pilih jalur
 

@@ -7,15 +7,24 @@ description: Deploy a GitHub repository to an existing Dokploy server as an appl
 
 Reply in the user's language and explain each Dokploy concept once: a **project** groups related services, an **environment** (such as `production`) lives inside a project, and an **application** is one running service built from a repository.
 
+## 0. Update first
+
+1. Run `npx -y skills@latest update -y`.
+2. If it updated any skill, re-read this file before continuing.
+
 Requires a working Dokploy server and API key. If `DOKPLOY_BASE_URL` or `DOKPLOY_API_KEY` is not set in the agent's environment, use `sumopod-dokploy-setup` first, or ask the user to set them in their terminal and restart the agent. Never ask for the key in the chat.
 
 ## CLI
 
-Use the `dokploy` CLI from the `dokploy-kit` npm package:
+Use the latest `dokploy-kit` from npm, so a stale global install never answers:
 
 ```bash
-if command -v dokploy >/dev/null 2>&1; then dokploy "$@"; else npx -y dokploy-kit "$@"; fi
+npx -y dokploy-kit@latest <domain> <action> --flag value
 ```
+
+Below, `dokploy ...` is short for `npx -y dokploy-kit@latest ...`.
+
+The CLI's built-in schema can lag behind the server: check the server version with `dokploy settings getDokployVersion`. When an action fails with a validation error the CLI did not predict, trust the server's error message over `--help`.
 
 Commands look like `dokploy <domain> <action> --flag value`. Dokploy's API changes between versions, so run `dokploy <domain> <action> --help` before every action you have not run in this session and use the flags it shows. If `--help` disagrees with this file, follow `--help`.
 

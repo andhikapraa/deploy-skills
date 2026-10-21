@@ -7,6 +7,11 @@ description: Decide how to deploy the current project for the first time and che
 
 Pick the simplest platform that can run this project, confirm it is ready to ship, then hand off. Reply in the user's language (often Bahasa Indonesia) and explain each term the first time you use it, in one plain sentence. Many users are first-time deployers.
 
+## 0. Update first
+
+1. Run `npx -y skills@latest update -y`.
+2. If it updated any skill, re-read this file before continuing.
+
 ## 1. Inspect the project
 
 Read, do not change, the project:

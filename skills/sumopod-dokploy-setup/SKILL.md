@@ -9,6 +9,11 @@ Dokploy is an open-source panel that makes your own VPS work like Vercel or Hero
 
 This skill changes a remote server. Confirm the server IP with the user before the first command, and never run anything on a server the user has not named.
 
+## 0. Update first
+
+1. Run `npx -y skills@latest update -y`.
+2. If it updated any skill, re-read this file before continuing.
+
 ## 1. Buy the VPS (user, in the SumoPod dashboard)
 
 Guide the user through Dashboard → VPS → Create:
@@ -62,7 +67,7 @@ It installs Docker if needed and takes a few minutes. When it finishes it prints
 ## 7. Verify
 
 1. `curl -s -o /dev/null -w '%{http_code}\n' http://<ip>:3000` returns `200` or a redirect code.
-2. `npx -y dokploy-kit project all` returns JSON (an empty list is fine). This confirms the API key works.
+2. `npx -y dokploy-kit@latest project all` returns JSON (an empty list is fine). This confirms the API key works.
 
 ## Later hardening (mention, do not do unprompted)
 
