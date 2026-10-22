@@ -52,19 +52,34 @@ The repository must be on GitHub. Choose the branch:
 
 ## 3. Build type
 
-Check `dokploy application saveBuildType --help`. Choose:
+Prefer a Dockerfile: the image is smaller and the project controls how it builds. Check `dokploy application saveBuildType --help`. Choose:
 
 | Project | Build type |
 |---|---|
-| Has a `Dockerfile` | `dockerfile` with `--dockerfile Dockerfile --dockerContextPath .` (paths relative to the build path) and `null` for the rest. Read the Dockerfile first: its `EXPOSE`, required env vars, and any migrate step decide steps 4 and 5 |
-| Node, Python, PHP, Go without a Dockerfile | `railpack` (the successor to Nixpacks) with `--railpackVersion 0.15.4` or the server's current default, never `null`; or `nixpacks` if railpack is unavailable |
-| Static site or single-page app that only needs serving | `static` with `--publishDirectory dist` (the build output) and `--isStaticSpa=true` for client-side routers; this serves on port `80` |
+| Has a `Dockerfile` | `dockerfile` with `--dockerfile Dockerfile --dockerContextPath .` (paths relative to the build path) and `null` for the rest. Read the Dockerfile first: its `EXPOSE`, required env vars, and any migrate step decide steps 4 and 5. Check that `.dockerignore` excludes `.env` |
+| No `Dockerfile` yet (Node, Bun, Next.js, Vite SPA, Python) | Use `dockerfile-for-dokploy` to add one, commit and push it, then use the row above |
+| Language with no template there (PHP, Go, Ruby), or the user declines a Dockerfile | `railpack` (the successor to Nixpacks) with `--railpackVersion 0.15.4` or the server's current default, never `null`; or `nixpacks` if railpack is unavailable |
+| Several services of its own (`web` plus `worker`) or a `compose.yaml` that must run as-is | Compose, below, instead of an application |
 
-Note the port the app listens on (for example `3000` for Next.js and most Express apps, `4321` for Astro, `80` for static). The app should listen on `0.0.0.0` and read the port from `PORT` when it can.
+Note the port the app listens on: the Dockerfile's `EXPOSE` (`3000` for the Node, Bun, and Next.js templates, `8080` for the Vite template, `8000` for Python). The app should listen on `0.0.0.0` and read the port from `PORT` when it can.
+
+Public build-time variables (`VITE_*`, `NEXT_PUBLIC_*`) go in `--buildArgs` in step 4, one `KEY=value` per line, and the Dockerfile must declare each with `ARG`.
+
+### Compose
+
+Follow `dockerfile-for-dokploy` step 5 for the file itself. Then, in place of steps 2 to 4 and 6:
+
+1. `dokploy compose create --environmentId <id> --name <name> --composeType docker-compose`; keep `composeId` and `appName`.
+2. `dokploy compose update --help`, then set the source (public: `--sourceType git --customGitUrl <https url> --customGitBranch main --composePath ./compose.yaml`; private: the GitHub provider fields from step 1) and `--isolatedDeployment=true`.
+3. `dokploy compose saveEnvironment --composeId <id> --env` with one `KEY=value` per line (ask the user for each value; generate only passwords). The compose file must reference them as `${KEY}`.
+4. `dokploy compose deploy --composeId <id>`, then `dokploy deployment wait --composeId <id>`.
+5. Domain: `dokploy domain create --composeId <id> --serviceName <web service> --domainType compose --host <host> --path / --port <container port> --https=true --certificateType letsencrypt` (get a host from `generateDomain --appName <appName>` as in step 7). Then deploy once more and wait with `--new`: compose domains apply on the next deploy.
+
+Compose databases are not managed by Dokploy: their data lives in the compose file's named volume.
 
 ## 4. Environment variables
 
-`dokploy application saveEnvironment --help`, then send `--env` with one `KEY=value` per line, `--buildArgs null`, `--buildSecrets null`, and `--createEnvFile=true`. Ask the user for the value of every variable the app needs, secret or not; do not invent values, even for something that looks harmless such as a greeting. Secret values go directly into the command, never into a file in the repository. Generate only values that are meant to be random, such as a database password or an auth secret, and say that you did. Remind the user that changing variables requires a redeploy.
+`dokploy application saveEnvironment --help`, then send `--env` with one `KEY=value` per line, `--buildArgs` with the public build-time variables from step 3 (or `null`), `--buildSecrets null`, and `--createEnvFile=true`. Ask the user for the value of every variable the app needs, secret or not; do not invent values, even for something that looks harmless such as a greeting. Secret values go directly into the command, never into a file in the repository. Generate only values that are meant to be random, such as a database password or an auth secret, and say that you did. Remind the user that changing variables requires a redeploy.
 
 ## 5. Database (only if the app needs one)
 
@@ -111,7 +126,10 @@ Application domain changes apply without a redeploy.
 |---|---|
 | Build fails in seconds downloading `railpack-vnull` | `--railpackVersion` was set to `null`; set it to `0.15.4` (or the server default) with `saveBuildType` and redeploy |
 | Build stops with `Killed` or exit 137 | Out of memory on a 2 GB server. Dokploy itself uses about 1.3 GB, and a small Node build pushed swap to about 850 MB in testing. Confirm swap exists, close other builds, or upgrade to a 4 GB plan |
-| `Bad Gateway` on the domain | Wrong container port in the domain, or the app listens on `localhost` instead of `0.0.0.0` |
+| `Bad Gateway` on the domain | Wrong container port in the domain (check the Dockerfile's `EXPOSE`), or the app listens on `localhost` instead of `0.0.0.0` |
+| Secrets visible inside the image (`.env` in `/app`) | `.dockerignore` does not exclude `.env`; Dokploy writes the environment there before building. Add it and redeploy |
+| Every redeploy pauses about 10 s before the new version starts | The app runs as PID 1 and ignores stop signals; start it under `tini` as in the `dockerfile-for-dokploy` templates |
+| Compose service keeps restarting with `MODULE_NOT_FOUND` | A file it runs is missing from the image it uses; check `.dockerignore`, the Dockerfile's `COPY`, and that the service builds from the current source |
 | App crashes on start | Missing environment variable or failed database connection; read the runtime logs |
 | Health check passes but sign-up, login, or saving returns 500 | Migrations have not run, so the tables do not exist; see step 5.5 |
 | Login works locally but not live (auth apps such as Better Auth) | The auth base URL env var (for example `BETTER_AUTH_URL`) must be the public `https://` domain from step 7, and behind Traefik set the client-IP header the app expects (for example `TRUSTED_IP_HEADER=x-forwarded-for`) |

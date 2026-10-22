@@ -1,0 +1,28 @@
+# Dokploy writes the app's environment to .env in the build folder before it
+# builds. Excluding it keeps secrets out of the image.
+.env
+.env.*
+!.env.example
+**/.npmrc
+*.pem
+*.key
+
+.git
+.github
+.vscode
+.idea
+node_modules
+dist
+build
+.next
+coverage
+__pycache__
+*.pyc
+.venv
+venv
+.DS_Store
+Dockerfile
+.dockerignore
+compose.yaml
+docker-compose*.yml
+*.md

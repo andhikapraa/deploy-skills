@@ -7,6 +7,7 @@ Agent skills buat deploy versi pertama MVP kamu. Kamu cukup bilang "deploy app i
 | `deploy-router` | Baca project, pilih Cloudflare atau Dokploy, cek build, `.env`, dan secret |
 | `cloudflare-deploy` | Deploy gratis ke Cloudflare Workers pakai CLI `cf`, dapat URL `*.workers.dev` dengan HTTPS |
 | `sumopod-dokploy-setup` | Siapin VPS SumoPod dan install Dokploy |
+| `dockerfile-for-dokploy` | Bikin `Dockerfile` kecil dan aman buat Dokploy (Node, Bun, Next.js, Vite, Python), plus `compose.yaml` kalau app-nya punya beberapa service |
 | `dokploy-deploy` | Deploy repo GitHub ke Dokploy, plus database dan domain |
 
 ## Install
@@ -22,6 +23,12 @@ npx skills add andhikapraa/deploy-skills -a antigravity
 
 # Dua-duanya sekaligus
 npx skills add andhikapraa/deploy-skills -a claude-code -a antigravity
+```
+
+Tambahan yang disaranin: skill resmi dari Docker buat best practice Dockerfile dan Compose. Ganti `-a` sesuai agent kamu:
+
+```bash
+npx skills add docker/skills --skill docker-build-strategies docker-compose-patterns -a claude-code -y
 ```
 
 Install di level project (tanpa `-g`). Setiap mulai, skill-nya otomatis jalanin `npx skills update -y` buat narik versi terbaru dari repo ini. Install global juga bisa, tapi pengecekan update-nya lewat API GitHub yang dibatasi 60 request per jam per IP, jadi gampang mentok kalau banyak orang pakai Wi-Fi yang sama.
@@ -58,13 +65,15 @@ App kamu butuh server yang jalan terus?
 - User default Ubuntu Tencent itu `ubuntu`, bukan `root`.
 - Port 22, 80, 443, dan 3000 harus kebuka di firewall SumoPod.
 - Domain gratis dari Dokploy (`*.sslip.io`) udah bisa HTTPS dengan sertifikat Let's Encrypt, jadi nggak wajib beli domain buat versi pertama.
-- Dokploy sendiri makan sekitar 1,3 GB RAM. Di paket 2 GB, build app Node kecil masih jalan tapi pakai swap. Buat app yang lebih berat, pilih paket 4 GB.
+- Dokploy sendiri makan sekitar 1,3 GB RAM. Di paket 2 GB, build app Node kecil masih jalan tapi pakai swap. Build Next.js baru sempat makan sekitar 1,3 GB RAM plus 1 GB swap. Buat app yang lebih berat, pilih paket 4 GB.
+- Pakai Dockerfile, image-nya jauh lebih kecil. App Express kecil: 175 MB pakai Dockerfile, 416 MB pakai builder otomatis Dokploy (railpack).
 
 ## Keamanan
 
 - Jangan pernah paste API key atau password ke chat agent.
 - API key Dokploy disimpan pakai `npx -y dokploy-kit@latest login --url http://IP:3000`, dijalanin di jendela terminal terpisah (bukan lewat agent). Key-nya diketik tersembunyi dan disimpan ke `~/.config/dokploy/config.json`, terus semua agent bisa baca dari situ.
 - Variabel `VITE_*`, `NEXT_PUBLIC_*`, dan `PUBLIC_*` bakal kelihatan di browser semua pengunjung. Jangan taruh secret di situ.
+- Dokploy nulis semua env var app ke file `.env` sebelum build. Pastiin `.dockerignore` ngecualiin `.env`, biar secret-nya nggak ikut masuk ke image.
 - Setelah install Dokploy, langsung buka panelnya dan bikin akun admin. Sebelum itu, siapa pun yang nemu URL-nya bisa ngambil alih server kamu.
 
 ## Lisensi

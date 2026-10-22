@@ -1,0 +1,45 @@
+# Compose for Dokploy: app + worker + Postgres. Turn on Isolated Deployments,
+# then add the domain in Dokploy (service `web`, its container port).
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    # No `ports:`. Traefik reaches the container through the domain.
+    expose:
+      - "3000"
+    environment:
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD:?set in Dokploy}@db:5432/app
+      GREETING: ${GREETING:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["node", "worker.js"]
+    environment:
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD:?set in Dokploy}@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in Dokploy}
+    volumes:
+      # A named volume, so Dokploy volume backups can cover it.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db-data:

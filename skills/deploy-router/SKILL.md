@@ -18,7 +18,7 @@ Read, do not change, the project:
 
 - `package.json` scripts and dependencies, or the equivalent for other languages (`requirements.txt`, `composer.json`, `go.mod`);
 - framework config files (`vite.config.*`, `next.config.*`, `astro.config.*`, `nuxt.config.*`, `svelte.config.*`);
-- a `Dockerfile` or `docker-compose.yml`;
+- a `Dockerfile`, `compose.yaml`, or `docker-compose.yml`;
 - a server entry point (`server.js`, `app.listen(`, `express()`, `fastify(`, `uvicorn`, `artisan`);
 - database or queue usage (`pg`, `mysql2`, `prisma`, `drizzle`, `mongoose`, `redis`, `bullmq`);
 - `.env*` files and `.gitignore`;
@@ -42,7 +42,7 @@ Done when you can answer: what is built, what has to keep running, and what it n
 
 When both fit, choose Cloudflare: it is free and needs no server. Cloudflare free limits that matter: static requests are free and unlimited; Worker code gets 100,000 requests per day and 10 ms of CPU time per request.
 
-If the route is `dokploy-deploy` and the user has no Dokploy server yet, `sumopod-dokploy-setup` comes first.
+If the route is `dokploy-deploy` and the user has no Dokploy server yet, `sumopod-dokploy-setup` comes first. If the project has no `Dockerfile`, `dokploy-deploy` adds one with `dockerfile-for-dokploy`.
 
 ## 3. Readiness check
 
