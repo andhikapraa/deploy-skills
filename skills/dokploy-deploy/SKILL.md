@@ -24,7 +24,7 @@ Use `dokploy-kit` major version 2 from npm, so a stale global install never answ
 npx -y dokploy-kit@2 <domain> <action> --flag value
 ```
 
-Below, `dokploy ...` is short for `npx -y dokploy-kit@2 ...`.
+Below, `dokploy ...` is short for `npx -y dokploy-kit@2 ...`. Write the full command every time; do not store it in a shell variable such as `D="npx ..."`, because agent sandboxes ask for approval on commands they cannot check.
 
 The CLI's built-in schema can lag behind the server: check the server version with `dokploy settings getDokployVersion`. When an action fails with a validation error the CLI did not predict, trust the server's error message over `--help`.
 
@@ -47,7 +47,7 @@ The repository must be on GitHub. Choose the branch:
 
 1. `dokploy project all`. Reuse a project with the right name, or `dokploy project create --name <name>`.
 2. Find the environment: check the project from `project one` or `environment byProjectId`. Recent Dokploy versions create `production` automatically; create one only if none exists.
-3. `dokploy application create --environmentId <id> --name <name>` and keep the returned `applicationId`.
+3. `dokploy application create --environmentId <id> --name <name>` once, and keep the `applicationId` from its output. Each call creates another application, so if the output was cut off, find the id with `dokploy project one --projectId <id>` instead of creating again.
 4. Attach the source:
    - public: `dokploy application saveGitProvider --help`, then set `--customGitUrl` to the HTTPS clone URL, `--customGitBranch` (usually `main`), `--customGitBuildPath /`, and `--watchPaths null`;
    - private: `dokploy application saveGithubProvider --help`, then set owner, repository, branch, `--buildPath /`, `--triggerType push`, and the `githubId` of the connected GitHub App (from `dokploy github githubProviders`).
@@ -59,7 +59,7 @@ Prefer a Dockerfile: the image is smaller and the project controls how it builds
 | Project | Build type |
 |---|---|
 | Has a `Dockerfile` | `dockerfile` with `--dockerfile Dockerfile --dockerContextPath .` (paths relative to the build path) and `null` for the rest. Read the Dockerfile first: its `EXPOSE`, required env vars, and any migrate step decide steps 4 and 5. Check that `.dockerignore` excludes `.env` |
-| No `Dockerfile` yet (Node, Bun, Next.js, Vite SPA, Python) | Use `dockerfile-for-dokploy` to add one, commit and push it, then use the row above |
+| No `Dockerfile` yet (Node, Bun, Next.js, Vite SPA, Python) | Use `dockerfile-for-dokploy` to add one, commit and push it, then use the row above. This is the default: ask the user before the push (it changes their repository), and fall back to `railpack` only if they decline |
 | Language with no template there (PHP, Go, Ruby), or the user declines a Dockerfile | `railpack` (the successor to Nixpacks) with the server's default `--railpackVersion` (see above), never `null`; or `nixpacks` if railpack is unavailable |
 | Several services of its own (`web` plus `worker`) or a `compose.yaml` that must run as-is | Compose, below, instead of an application |
 
@@ -84,6 +84,8 @@ Compose databases are not managed by Dokploy: their data lives in the compose fi
 `dokploy application saveEnvironment --help`, then send `--env` with one `KEY=value` per line, `--buildArgs` with the public build-time variables from step 3 (or `null`), `--buildSecrets null`, and `--createEnvFile=true`. Ask the user for the value of every variable the app needs, secret or not; do not invent values, even for something that looks harmless such as a greeting. Secret values go directly into the command, never into a file in the repository. Generate only values that are meant to be random, such as a database password or an auth secret, and say that you did. Remind the user that changing variables requires a redeploy.
 
 ## 5. Database (only if the app needs one)
+
+The app needs one when it reads `DATABASE_URL` or uses a database client (`pg`, `prisma`, `drizzle`, `mysql2`, `mongoose`). Then create it without waiting to be asked, and tell the user you did.
 
 1. `dokploy postgres create --help`, then create it in the same environment with a database name, user, and a generated strong password. Generate it with `openssl rand -hex 24` as its own command and pass the value; agent sandboxes ask for approval on `$(...)` inside a command. Never show the password in the chat.
 2. `dokploy postgres deploy --postgresId <id>`.
@@ -112,7 +114,7 @@ Application domain changes apply without a redeploy.
 
 ## 8. Verify
 
-1. `curl -sI http://<domain>` (or `https://`) returns a success or redirect status.
+1. `curl -sI http://<domain>` (or `https://`) returns a success or redirect status. Right after the domain is created, HTTPS can fail for about a minute until the certificate arrives: check plain HTTP first, then HTTPS again on a later turn, without a `sleep`.
 2. Ask the user to open it and run through the main flow.
 3. Check the app's runtime logs for errors after the first real request.
 

@@ -44,13 +44,13 @@ Done when you can answer: what is built, what has to keep running, and what it n
 
 When both fit, choose Cloudflare: it is free and needs no server. Cloudflare free limits that matter: static requests are free and unlimited; Worker code gets 100,000 requests per day and 10 ms of CPU time per request.
 
-If the route is `dokploy-deploy` and the user has no Dokploy server yet, `sumopod-dokploy-setup` comes first. If the project has no `Dockerfile`, `dokploy-deploy` adds one with `dockerfile-for-dokploy`.
+If the route is `dokploy-deploy`, check for a server before choosing the next skill: run `npx -y dokploy-kit@2 project all`. JSON output (even `[]`) means a server and login exist: continue with `dokploy-deploy`. "Not logged in" means ask the user whether they already have a Dokploy server; only if they do not, `sumopod-dokploy-setup` comes first. If the project has no `Dockerfile`, `dokploy-deploy` adds one with `dockerfile-for-dokploy`.
 
 ## 3. Readiness check
 
 Check each item and fix only what the user approves:
 
-1. The project builds locally (`npm run build` or the project's equivalent). A local build failure will also fail on the server.
+1. The project builds locally (`npm run build` or the project's equivalent). Without `node_modules`, run `npm ci` (or `npm install` without a lockfile) first, so a missing install is not mistaken for a broken build. A local build failure will also fail on the server.
 2. `.env` and other secret files are listed in `.gitignore` and are not tracked (`git ls-files | grep -i env`). If a secret was committed, tell the user to rotate it; deleting the file does not remove it from history.
 3. List the environment variables the app reads, and mark which ones are secret.
 4. For a browser app: any variable with a public prefix (`VITE_`, `NEXT_PUBLIC_`, `PUBLIC_`) ends up in the JavaScript that every visitor downloads. A secret key there is leaked. Move it behind a server or use a key designed to be public (for example the Supabase anon key with row-level security).

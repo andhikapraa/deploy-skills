@@ -35,7 +35,7 @@ In a project with a Wrangler config, never run `cf init`, `cf build`, `cf dev`, 
 ## 2. Preflight
 
 1. `node -v` must be 22.18 or newer. If older, stop and tell the user to install the current LTS from nodejs.org. Bun is not supported.
-2. The project builds locally with its own build script (`npm run build`). Fix failures here first; they are easier to read than deploy errors.
+2. The project builds locally with its own build script (`npm run build`). Without `node_modules`, run `npm ci` first. Fix failures here first; they are easier to read than deploy errors.
 3. `cf build` and `cf deploy` run only the framework's build (for example `vite build`), not the `build` script, so extra steps are skipped. The Vite templates use `tsc -b && vite build`: under `cf deploy` a type error no longer stops the deploy. Always run `npm run build` before `cf deploy`, so the project's own checks still gate what goes live.
 
 ## 3. Set up the project
@@ -59,7 +59,7 @@ Run `npx cf auth whoami`.
 
 - **Signed in:** continue.
 - **Not signed in, and the user has or wants a Cloudflare account:** the user runs the login, because it waits for them to approve in the browser. Ask them to run `npx cf auth login` in their own terminal. In Claude Code they can type `! npx cf auth login` in the chat. It prints a link and a one-time code and opens the browser, where they sign in or create a free account and approve. Then run `npx cf auth whoami` again. `cf` keeps its own login, separate from Wrangler.
-- **Not signed in, and the user does not want an account yet:** offer a temporary account: "Aku bisa online-kan ini selama 60 menit tanpa login. Supaya nggak hilang, buka link claim sebelum waktunya habis. Mau?" Only after a yes, deploy with `npx cf deploy --temporary-account`. It prints a claim URL; tell the user to open it and sign in within 60 minutes, or Cloudflare deletes the account and the app. Treat the claim URL like a password: show it only to this user. It does not work when the user is already signed in.
+- **Not signed in, and the user does not want an account yet:** offer a temporary account, naming the Worker and saying it will be public: "Aku bisa online-kan ini sebagai `<worker-name>` di URL publik `*.workers.dev`, selama 60 menit tanpa login. Supaya nggak hilang, buka link claim sebelum waktunya habis. Mau?" Only after a yes, deploy with `npx cf deploy --temporary-account`. It prints a claim URL; tell the user to open it and sign in within 60 minutes, or Cloudflare deletes the account and the app. Treat the claim URL like a password: show it only to this user. It does not work when the user is already signed in.
 
 Never ask the user to paste a Cloudflare API token into the chat.
 

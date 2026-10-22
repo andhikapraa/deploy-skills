@@ -71,6 +71,16 @@ On a 2 GB VPS, a Next.js build peaked at about 1.3 GB RAM and 1 GB swap in testi
 
 Done when the image builds and the app answers on its port.
 
+## 4.5. Commit and push (ask first)
+
+Committing is fine. Pushing changes the user's GitHub repository, so it needs the user's yes, even when another skill sent you here.
+
+1. Commit the files.
+2. End your turn with this question as the last thing you write, and run no more commands in this turn: "Dockerfile-nya udah siap. Boleh aku push ke `<branch>` di `<repo>`?"
+3. Push only after the user's next message says yes. Asking and pushing in the same turn is not asking.
+
+If the user says no, tell `dokploy-deploy` to use `railpack` instead.
+
 ## 5. Compose (only for several services)
 
 Use a Dokploy **Application** with the Dockerfile and a Dokploy-managed database for one service plus a database. Use **Compose** only when the project has several of its own services (for example `web` plus a background `worker`) or ships a `compose.yaml` that must run as-is.

@@ -11,6 +11,8 @@ Dokploy is an open-source panel that makes your own VPS work like Vercel or Hero
 
 This skill changes a remote server. Confirm the server IP with the user before the first command, and never run anything on a server the user has not named.
 
+Three secrets come up: the SumoPod session, the VPS password, and the Dokploy API key. The user types or pastes each one into their own terminal, into a command that reads it from a hidden prompt (`sumopod login`, `ssh-copy-id`, `dokploy login`). Never ask the user to send any of them in the chat, and if one is pasted into the chat anyway, do not use it: tell the user to revoke or rotate it.
+
 Write commands for the user in plain POSIX shell (they work in bash and zsh), with a PowerShell variant where they differ. Do not guess the user's shell from the environment.
 
 ## 0. Update first
@@ -22,9 +24,11 @@ Write commands for the user in plain POSIX shell (they work in bash and zsh), wi
 
 Buying happens only in the dashboard: SumoPod requires a captcha to create a VPS, and it spends the user's balance. Never try to create, renew, or upgrade a VPS from the terminal.
 
+In your first reply, give the target before anything else: OS **Ubuntu Server 24.04 LTS 64bit**, at least **2 vCPU / 2 GB RAM / 30 GB disk**, region Jakarta. Then offer the two ways to pick a plan below.
+
 `scripts/sumopod.mjs` in this skill's folder is a read-only SumoPod CLI. Below, `sumopod` means `node <this skill's folder>/scripts/sumopod.mjs`. It is optional: if the user does not want to paste a session, skip to the manual path at the end of this step.
 
-1. **Sign in the CLI.** The user signs in at sumopod.com, opens the browser console (F12, or Cmd+Opt+I on Mac), runs `copy(localStorage.getItem("sumopod-auth"))`, then runs `sumopod login` in a separate terminal window and pastes it. The session grants full access to their account: never ask for it in the chat. It ends about 1 hour after the browser sign-in, so take it right before use; on "token refresh failed", repeat this step.
+1. **Sign in the CLI.** The user signs in at sumopod.com, opens the browser console (F12, or Cmd+Opt+I on Mac), and runs `copy(localStorage.getItem("sumopod-auth"))`. Then, in their own terminal window (not the chat), they run `sumopod login` and paste it there. Give them the full command with this skill's folder path. The session grants full access to their account. It ends about 1 hour after the browser sign-in, so take it right before use; on "token refresh failed", repeat this step.
 2. **Check balance and pick a plan.** Run `sumopod whoami` for the balance, then `sumopod plans --region jakarta --provider tencent` (also `--provider cloudeka`, or `--region singapore`). Show the plans marked "cukup buat Dokploy" (at least 2 GB RAM and 30 GB disk) with their prices, and let the user choose. Recommend the cheapest one that fits. On Tencent, warn that the listed monthly egress is a hard cap: when it runs out, the VPS shuts down until the next month.
 3. **The user buys it** at https://sumopod.com/dashboard/vps/create: the chosen provider and region, OS **Ubuntu Server 24.04 LTS 64bit** (not an app image such as "Hermes (Ubuntu 24.04)"), the chosen plan, then the captcha and Create.
 4. **Wait for it.** Run `sumopod vps wait`. It polls every 15 seconds and prints `ready: <user>@<ip>` once the newest VPS is running with an IP. On Tencent Ubuntu the username is `ubuntu`, not `root`. Confirm that IP with the user before step 3.
