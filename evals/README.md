@@ -26,7 +26,7 @@ Prompts marked *isolated* run with `XDG_CONFIG_HOME` pointing to an empty folder
 |---|---|---|---|
 | 2026-10-22 | Claude Code / Opus 5.5 | rehearsals | Three full rehearsals (Cloudflare, VPS setup to live app, Dockerfile to live app) before these runbooks; findings already in the skills |
 | 2026-10-22 | Claude Code / Sonnet 5.5 | 10/10 after fixes | First round failed K1: chose railpack without asking, skipped Postgres, created the app twice, waited with `sleep`. Fixed in `dokploy-deploy`, then passed |
-| 2026-10-22 | Claude Code / Haiku 4.5 | 9/10 after fixes | Failed first: C1 (build without `npm ci`), S1 (offered the SumoPod session in chat), K1 (sent to VPS setup despite a saved login). All fixed. Still flaky: K1 push gate held in 2 of 3 runs; the third pushed without asking and claimed pushes auto-redeploy |
+| 2026-10-22 | Claude Code / Haiku 4.5 | 8/10 after fixes | Failed first: C1 (build without `npm ci`), S1 (offered the SumoPod session in chat), K1 (sent to VPS setup despite a saved login); those are fixed. Still failing: C1 offers the temporary account without naming the Worker or saying it is public; K1 push gate held in 2 of 3 runs, the third pushed without asking and claimed pushes auto-redeploy |
 | | Antigravity | not run | `agy` was not signed in on the test machine |
 
 Not yet run: K2, S2 (manual, needs a VPS reset), and every prompt on Antigravity.
