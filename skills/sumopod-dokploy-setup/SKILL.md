@@ -9,6 +9,8 @@ Dokploy is an open-source panel that makes your own VPS work like Vercel or Hero
 
 This skill changes a remote server. Confirm the server IP with the user before the first command, and never run anything on a server the user has not named.
 
+Write commands for the user in plain POSIX shell (they work in bash and zsh), with a PowerShell variant where they differ. Do not guess the user's shell from the environment.
+
 ## 0. Update first
 
 1. Run `npx -y skills@latest update -y`.
@@ -36,7 +38,7 @@ With the CLI signed in, `sumopod vps firewall <id>` lists the current rules (the
 Prefer an SSH key so the agent can run commands without a password prompt:
 
 1. If `~/.ssh/id_ed25519.pub` does not exist, run `ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519`. The agent can run this itself; never overwrite an existing key.
-2. Record the server's host key, so later non-interactive commands do not stop at "Host key verification failed": `ssh-keygen -R <ip> >/dev/null 2>&1; ssh-keyscan -T 10 -t ed25519 <ip> >> ~/.ssh/known_hosts`. The `-R` clears an old key for the same IP, which a reset VPS keeps.
+2. Record the server's host key, so later non-interactive commands do not stop at "Host key verification failed": `ssh-keygen -R <ip> >/dev/null 2>&1; ssh-keyscan -T 10 -t ed25519 <ip> >> ~/.ssh/known_hosts`. The `-R` clears an old key for the same IP, which a reset VPS keeps. This writes outside the project folder, so the agent may need the user's approval; if it is refused, give the user this command to run together with step 3.
 3. The user runs `ssh-copy-id <user>@<ip>` in their own terminal and types the VPS password at the prompt. On Windows PowerShell, where `ssh-copy-id` is missing, use: `type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@<ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"`.
 4. Test: `ssh -o BatchMode=yes -o ConnectTimeout=10 <user>@<ip> 'whoami && lsb_release -ds'`. It must print the username and Ubuntu 24.04 without asking for anything.
 

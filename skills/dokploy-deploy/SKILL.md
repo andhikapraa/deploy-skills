@@ -64,7 +64,7 @@ Note the port the app listens on (for example `3000` for Next.js and most Expres
 
 ## 4. Environment variables
 
-`dokploy application saveEnvironment --help`, then send `--env` with one `KEY=value` per line, `--buildArgs null`, `--buildSecrets null`, and `--createEnvFile=true`. Ask the user for each secret value and send it directly in the command without writing it to any file in the repository. Remind the user that changing variables requires a redeploy.
+`dokploy application saveEnvironment --help`, then send `--env` with one `KEY=value` per line, `--buildArgs null`, `--buildSecrets null`, and `--createEnvFile=true`. Ask the user for the value of every variable the app needs, secret or not; do not invent values, even for something that looks harmless such as a greeting. Secret values go directly into the command, never into a file in the repository. Generate only values that are meant to be random, such as a database password or an auth secret, and say that you did. Remind the user that changing variables requires a redeploy.
 
 ## 5. Database (only if the app needs one)
 
@@ -83,7 +83,7 @@ MySQL, MariaDB, MongoDB, and Redis follow the same pattern under their own domai
 ## 6. Deploy
 
 1. `dokploy application deploy --applicationId <id>`.
-2. Watch progress: `dokploy deployment all --applicationId <id>` until the newest deployment is `done` or `error`.
+2. Wait with one command: `dokploy deployment wait --applicationId <id>`. It returns when the newest deployment finishes: exit 0 `done`, 3 `error` (it prints the `readLogs` command), 4 timed out. Never wait with a shell loop (`while`, `until`, `for` with `sleep`): agent sandboxes block those or ask for approval on every poll. This needs dokploy-kit 2.2.0 or later; on an older version, check `dokploy deployment all --applicationId <id>` once a minute with separate commands.
 3. On `error`, read the build log with `dokploy deployment readLogs --deploymentId <id> --tail 200`, and runtime logs with `dokploy application readLogs --applicationId <id> --tail 200`. Fix the cause. The most common causes are in the table below.
 
 ## 7. Domain
