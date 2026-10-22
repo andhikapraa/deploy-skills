@@ -83,7 +83,7 @@ Compose databases are not managed by Dokploy: their data lives in the compose fi
 
 ## 5. Database (only if the app needs one)
 
-1. `dokploy postgres create --help`, then create it in the same environment with a database name, user, and a generated strong password.
+1. `dokploy postgres create --help`, then create it in the same environment with a database name, user, and a generated strong password. Generate it with `openssl rand -hex 24` as its own command and pass the value; agent sandboxes ask for approval on `$(...)` inside a command. Never show the password in the chat.
 2. `dokploy postgres deploy --postgresId <id>`.
 3. Read the internal connection details from `dokploy postgres one --postgresId <id>`. Apps in the same Dokploy server connect through the internal host name, not the public IP.
 4. Save `DATABASE_URL=postgresql://<user>:<password>@<internal-host>:5432/<db>` in the application's environment.

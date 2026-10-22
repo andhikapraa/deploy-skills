@@ -31,7 +31,7 @@ Templates live in `templates/` next to this file. All were built and run on a 2 
 
 For comparison, Dokploy's `railpack` builder made a 416 MB image for a small Express app.
 
-1. Copy the template to `Dockerfile` at the build path (usually the repository root), and `templates/dockerignore` to `.dockerignore` next to it. For the SPA, also copy `nginx.conf`.
+1. Read the template and write its content to `Dockerfile` at the build path (usually the repository root), and `templates/dockerignore` to `.dockerignore` next to it. For the SPA, also write `nginx.conf`. Use the file read and write tools rather than `cp`: agents such as Claude Code ask for approval before a shell command touches the skill folder.
 2. Set the start `CMD` to the project's real entry: the file `npm start` runs (`["node", "dist/index.js"]`), not `npm start` itself, so the process gets stop signals.
 3. Set `EXPOSE` to the port the app listens on. The app must listen on `0.0.0.0`, not `localhost`.
 4. For pnpm or yarn, replace the lockfile name and install command (`corepack enable pnpm && pnpm install --frozen-lockfile`). Without any lockfile, run the project's install once locally to create one and commit it.
@@ -51,7 +51,7 @@ Done when the `Dockerfile`, `.dockerignore`, and any `nginx.conf` exist and the 
 
 ## 4. Check the build
 
-If Docker runs on the user's machine, build and run it once:
+If Docker runs on the user's machine, build and run it once (the agent may need the user's approval for `docker`):
 
 ```bash
 docker build -t app-check .
