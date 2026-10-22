@@ -1,6 +1,8 @@
 ---
 name: deploy-router
 description: Decide how to deploy the current project for the first time and check that it is ready. Use when the user asks to deploy, launch, host, publish, or "online-kan" an app and has not yet chosen a platform, or asks whether Cloudflare or a VPS with Dokploy fits their project. Routes to cloudflare-deploy or dokploy-deploy.
+license: MIT
+compatibility: Needs git and Node.js 22.18+ (for npx). Works in any Agent Skills client, such as Claude Code, Antigravity, Codex, or Cursor.
 ---
 
 # Deploy router

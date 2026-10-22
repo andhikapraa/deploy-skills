@@ -1,6 +1,8 @@
 ---
 name: dockerfile-for-dokploy
 description: Write or fix the Dockerfile, .dockerignore, and (only when needed) compose.yaml for a project that will deploy to Dokploy on a small VPS. Use when dokploy-deploy needs a Dockerfile, when the user asks to Dockerize an app for Dokploy, or when a Dokploy build or container fails because of its Dockerfile or compose file.
+license: MIT
+compatibility: Writes files in the project only. Docker on the user's machine is optional, for a local build check.
 ---
 
 # Dockerfile for Dokploy
@@ -8,6 +10,11 @@ description: Write or fix the Dockerfile, .dockerignore, and (only when needed) 
 Give the project a small, non-root image that Dokploy builds on the VPS itself, usually a 2 GB server that also runs Dokploy. Reply in the user's language. This skill only writes files in the project; `dokploy-deploy` does the deploying.
 
 For general Dockerfile and Compose practice, Docker's own skills apply when installed (`docker-build-strategies`, `docker-compose-patterns`). Where they disagree with this file about Dokploy (published ports, volumes, `.env`, image size on a small server), follow this file.
+
+## 0. Update first
+
+1. Run `npx -y skills@latest update -y`.
+2. If it updated any skill, re-read this file before continuing.
 
 ## 1. Read the project
 

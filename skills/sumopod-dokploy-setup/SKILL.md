@@ -1,6 +1,8 @@
 ---
 name: sumopod-dokploy-setup
 description: Prepare a fresh SumoPod VPS (or another Ubuntu VPS) and install Dokploy on it, from buying the server to creating a Dokploy API key. Use when the user wants to set up a VPS, install Dokploy, or use SumoPod credits for hosting, or when dokploy-deploy needs a server that does not exist yet.
+license: MIT
+compatibility: Needs ssh and Node.js 22.18+, an Ubuntu 24.04 VPS with 2 GB RAM or more (SumoPod or another provider), and the user at a terminal for passwords and the Dokploy API key.
 ---
 
 # SumoPod VPS + Dokploy setup
@@ -55,9 +57,10 @@ Run each over `ssh <user>@<ip> '<command>'` and show the output:
 
 ## 5. Install Dokploy
 
-Download first, then run, so a failed download never runs half a script:
-
-`ssh <user>@<ip> 'curl -fsSL https://dokploy.com/install.sh -o /tmp/dokploy-install.sh && sudo sh /tmp/dokploy-install.sh'`
+Download first, then run, so a failed download never runs half a script. Use the installer attached to a Dokploy release, not the moving `dokploy.com/install.sh`, so every run installs the same reviewed script and version. 1. Find the newest release tag (it looks like `v0.30.8`) and tell the user which version will be installed:
+   `ssh <user>@<ip> 'curl -fsSL -o /dev/null -w "%{url_effective}\n" https://github.com/Dokploy/dokploy/releases/latest'` prints a URL ending in `/tag/<tag>`.
+2. Download that release's script, then run it:
+   `ssh <user>@<ip> 'curl -fsSL https://github.com/Dokploy/dokploy/releases/download/<tag>/install.sh -o /tmp/dokploy-install.sh && sudo bash /tmp/dokploy-install.sh'`
 
 It installs Docker if needed and takes a few minutes. When it finishes it prints the panel URL, `http://<ip>:3000`.
 
@@ -69,14 +72,14 @@ It installs Docker if needed and takes a few minutes. When it finishes it prints
 3. Create an API key for the agent: in Dokploy, open **Settings → Profile → API/CLI** and generate a key.
 4. Save it with `dokploy login`. The user runs this in a separate terminal window, not through the agent: the key prompt is hidden and needs a real terminal, which Claude Code's `!` prefix and agent Bash tools do not provide.
    ```bash
-   npx -y dokploy-kit@latest login --url http://<ip>:3000
+   npx -y dokploy-kit@2 login --url http://<ip>:3000
    ```
    It asks for the key (typing is hidden), checks it against the server, and saves the URL and key to `~/.config/dokploy/config.json` (mode 600). The same command works on macOS, Linux, and Windows, and every agent reads the saved file, including desktop apps such as Antigravity. Never ask for the key in the chat or pass it as a command argument.
 
 ## 7. Verify
 
 1. `curl -s -o /dev/null -w '%{http_code}\n' http://<ip>:3000` returns `200` or a redirect code.
-2. `npx -y dokploy-kit@latest project all` returns JSON (an empty list is fine). This confirms the saved login works from the agent. If it says "Not logged in", step 6.4 has not been done yet.
+2. `npx -y dokploy-kit@2 project all` returns JSON (an empty list is fine). This confirms the saved login works from the agent. If it says "Not logged in", step 6.4 has not been done yet.
 
 ## Later hardening (mention, do not do unprompted)
 

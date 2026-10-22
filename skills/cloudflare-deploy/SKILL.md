@@ -1,6 +1,8 @@
 ---
 name: cloudflare-deploy
 description: Deploy a static site, single-page app, supported full-stack framework, or small API to Cloudflare Workers on the free plan with the cf CLI, or with Wrangler in projects that already have a Wrangler config, and redeploy it later. Use when the user wants to deploy to Cloudflare, Workers, Pages, or workers.dev, or when deploy-router chose Cloudflare.
+license: MIT
+compatibility: Needs Node.js 22.18+ and network access to Cloudflare. A Cloudflare account, or the temporary account the cf CLI can create.
 ---
 
 # Deploy to Cloudflare Workers

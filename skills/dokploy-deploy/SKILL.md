@@ -1,6 +1,8 @@
 ---
 name: dokploy-deploy
 description: Deploy a GitHub repository to an existing Dokploy server as an application, optionally with a Postgres database and a domain, then redeploy and read logs. Use when the user wants to deploy a backend, full-stack app, Docker app, or database-backed app to Dokploy or their VPS, or when deploy-router chose Dokploy.
+license: MIT
+compatibility: Needs Node.js 22.18+, a GitHub repository, and a Dokploy server with a saved dokploy-kit login.
 ---
 
 # Deploy to Dokploy
@@ -12,17 +14,17 @@ Reply in the user's language and explain each Dokploy concept once: a **project*
 1. Run `npx -y skills@latest update -y`.
 2. If it updated any skill, re-read this file before continuing.
 
-Requires a working Dokploy server and a saved login. Check with `npx -y dokploy-kit@latest project all`. If it says "Not logged in": with no server yet, use `sumopod-dokploy-setup`; with a server, ask the user to run `npx -y dokploy-kit@latest login --url <panel-url>` in a separate terminal window (the hidden key prompt needs a real terminal), then check again. Never ask for the key in the chat.
+Requires a working Dokploy server and a saved login. Check with `npx -y dokploy-kit@2 project all`. If it says "Not logged in": with no server yet, use `sumopod-dokploy-setup`; with a server, ask the user to run `npx -y dokploy-kit@2 login --url <panel-url>` in a separate terminal window (the hidden key prompt needs a real terminal), then check again. Never ask for the key in the chat.
 
 ## CLI
 
-Use the latest `dokploy-kit` from npm, so a stale global install never answers:
+Use `dokploy-kit` major version 2 from npm, so a stale global install never answers and a future breaking release is not picked up unseen:
 
 ```bash
-npx -y dokploy-kit@latest <domain> <action> --flag value
+npx -y dokploy-kit@2 <domain> <action> --flag value
 ```
 
-Below, `dokploy ...` is short for `npx -y dokploy-kit@latest ...`.
+Below, `dokploy ...` is short for `npx -y dokploy-kit@2 ...`.
 
 The CLI's built-in schema can lag behind the server: check the server version with `dokploy settings getDokployVersion`. When an action fails with a validation error the CLI did not predict, trust the server's error message over `--help`.
 
@@ -30,7 +32,7 @@ Commands look like `dokploy <domain> <action> --flag value`. Dokploy's API chang
 
 Some actions mark nullable fields as required (for example `saveBuildType` requires `--dockerfile`, `--dockerContextPath`, `--dockerBuildStage`, `--herokuVersion`, `--railpackVersion`). Pass `null` for the ones that do not apply, such as `--dockerfile null`. Booleans take `--flag=true` or `--flag=false`.
 
-Exception: for the `railpack` build type, `--railpackVersion` must be a real version. `null` makes the build download railpack `vnull` and fail in seconds. Use the version the server defaults to, read with `dokploy application one --applicationId <id>` after creating any app (Dokploy v0.30.8 uses `0.15.4`).
+Exception: for the `railpack` build type, `--railpackVersion` must be a real version. `null` makes the build download railpack `vnull` and fail in seconds. Use the version the server defaults to: create the application first, then read `railpackVersion` from `dokploy application one --applicationId <id>` and pass that value.
 
 Actions named `delete`, `remove`, `stop`, or `kill` take effect immediately. Ask the user first, naming the exact resource.
 
@@ -58,7 +60,7 @@ Prefer a Dockerfile: the image is smaller and the project controls how it builds
 |---|---|
 | Has a `Dockerfile` | `dockerfile` with `--dockerfile Dockerfile --dockerContextPath .` (paths relative to the build path) and `null` for the rest. Read the Dockerfile first: its `EXPOSE`, required env vars, and any migrate step decide steps 4 and 5. Check that `.dockerignore` excludes `.env` |
 | No `Dockerfile` yet (Node, Bun, Next.js, Vite SPA, Python) | Use `dockerfile-for-dokploy` to add one, commit and push it, then use the row above |
-| Language with no template there (PHP, Go, Ruby), or the user declines a Dockerfile | `railpack` (the successor to Nixpacks) with `--railpackVersion 0.15.4` or the server's current default, never `null`; or `nixpacks` if railpack is unavailable |
+| Language with no template there (PHP, Go, Ruby), or the user declines a Dockerfile | `railpack` (the successor to Nixpacks) with the server's default `--railpackVersion` (see above), never `null`; or `nixpacks` if railpack is unavailable |
 | Several services of its own (`web` plus `worker`) or a `compose.yaml` that must run as-is | Compose, below, instead of an application |
 
 Note the port the app listens on: the Dockerfile's `EXPOSE` (`3000` for the Node, Bun, and Next.js templates, `8080` for the Vite template, `8000` for Python). The app should listen on `0.0.0.0` and read the port from `PORT` when it can.
@@ -98,12 +100,12 @@ MySQL, MariaDB, MongoDB, and Redis follow the same pattern under their own domai
 ## 6. Deploy
 
 1. `dokploy application deploy --applicationId <id>`.
-2. Wait with one command: `dokploy deployment wait --applicationId <id>`. It returns when the newest deployment finishes: exit 0 `done`, 3 `error` (it prints the `readLogs` command), 4 timed out. Never wait with a shell loop (`while`, `until`, `for` with `sleep`): agent sandboxes block those or ask for approval on every poll. This needs dokploy-kit 2.2.0 or later; on an older version, check `dokploy deployment all --applicationId <id>` once a minute with separate commands.
+2. Wait with one command: `dokploy deployment wait --applicationId <id>`. It returns when the newest deployment finishes: exit 0 `done`, 3 `error` (it prints the `readLogs` command), 4 timed out. Never wait with a shell loop (`while`, `until`, `for` with `sleep`): agent sandboxes block those or ask for approval on every poll. This needs dokploy-kit 2.2 or later; on an older version, check `dokploy deployment all --applicationId <id>` once a minute with separate commands.
 3. On `error`, read the build log with `dokploy deployment readLogs --deploymentId <id> --tail 200`, and runtime logs with `dokploy application readLogs --applicationId <id> --tail 200`. Fix the cause. The most common causes are in the table below.
 
 ## 7. Domain
 
-- **No domain yet:** get a free host with `dokploy domain generateDomain --appName <the application's appName>`. Current Dokploy returns an `sslip.io` name such as `<app>-<hash>-43-173-20-68.sslip.io`, which resolves to the VPS IP and can get a real Let's Encrypt certificate, so create it with HTTPS on: `dokploy domain create --applicationId <id> --host <generated host> --path / --port <port> --https=true --certificateType letsencrypt`. The certificate arrives within about a minute, and HTTP redirects to HTTPS. Older Dokploy versions return a `traefik.me` host instead; those work only over HTTP, so use `--https=false --certificateType none` for them.
+- **No domain yet:** get a free host with `dokploy domain generateDomain --appName <the application's appName>`. Current Dokploy returns an `sslip.io` name such as `<app>-<hash>-<ip-with-dashes>.sslip.io`, which resolves to the VPS IP and can get a real Let's Encrypt certificate, so create it with HTTPS on: `dokploy domain create --applicationId <id> --host <generated host> --path / --port <port> --https=true --certificateType letsencrypt`. The certificate arrives within about a minute, and HTTP redirects to HTTPS. Older Dokploy versions return a `traefik.me` host instead; those work only over HTTP, so use `--https=false --certificateType none` for them.
 - **Own domain:** the user adds an A record pointing the domain or subdomain to the VPS IP. Then `dokploy domain create --applicationId <id> --host <domain> --path / --port <port> --https=true --certificateType letsencrypt`. The certificate is issued once DNS resolves to the server.
 
 Application domain changes apply without a redeploy.
@@ -124,7 +126,7 @@ Application domain changes apply without a redeploy.
 
 | Symptom | Cause and fix |
 |---|---|
-| Build fails in seconds downloading `railpack-vnull` | `--railpackVersion` was set to `null`; set it to `0.15.4` (or the server default) with `saveBuildType` and redeploy |
+| Build fails in seconds downloading `railpack-vnull` | `--railpackVersion` was set to `null`; set it to the server default with `saveBuildType` and redeploy |
 | Build stops with `Killed` or exit 137 | Out of memory on a 2 GB server. Dokploy itself uses about 1.3 GB, and a small Node build pushed swap to about 850 MB in testing. Confirm swap exists, close other builds, or upgrade to a 4 GB plan |
 | `Bad Gateway` on the domain | Wrong container port in the domain (check the Dockerfile's `EXPOSE`), or the app listens on `localhost` instead of `0.0.0.0` |
 | Secrets visible inside the image (`.env` in `/app`) | `.dockerignore` does not exclude `.env`; Dokploy writes the environment there before building. Add it and redeploy |
@@ -135,6 +137,10 @@ Application domain changes apply without a redeploy.
 | Login works locally but not live (auth apps such as Better Auth) | The auth base URL env var (for example `BETTER_AUTH_URL`) must be the public `https://` domain from step 7, and behind Traefik set the client-IP header the app expects (for example `TRUSTED_IP_HEADER=x-forwarded-for`) |
 | Domain does not resolve | DNS not propagated yet, or the A record points to the wrong IP |
 | HTTPS certificate not issued | DNS does not point to the server yet, or ports 80/443 are closed in the SumoPod firewall |
+
+## Tested with
+
+Dokploy v0.30.8 and dokploy-kit 2.2 on a SumoPod Tencent VPS (2 vCPU, 2 GB, Ubuntu 24.04), October 2026. Flags and defaults can change in later Dokploy versions; `--help` and the server's errors win.
 
 ## Completion
 
