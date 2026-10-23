@@ -50,11 +50,15 @@ If the route is `dokploy-deploy`, check for a server before choosing the next sk
 
 Check each item and fix only what the user approves:
 
-1. The project builds locally (`npm run build` or the project's equivalent). Without `node_modules`, run `npm ci` (or `npm install` without a lockfile) first, so a missing install is not mistaken for a broken build. A local build failure will also fail on the server.
+1. **Clean run.** Build the project the way a server will: from the committed code, in an empty folder, with a fresh install. The user's working folder has files, installs, and settings a server never gets, so a build there can pass and still fail on deploy.
+   1. Run `git status --short --branch`. Uncommitted or untracked files the app needs are not on the server; list them. `ahead` means commits are not pushed yet; for `dokploy-deploy` they must be.
+   2. Make the empty copy next to the project, one plain command at a time, so agent permission prompts stay simple (no `cd`, `mktemp`, `$(...)`, or `&&` chains): `git worktree add --detach ../<project>-deploy-check HEAD`.
+   3. Install and build in the copy with the project's own commands, pointed at it: `npm ci --prefix ../<project>-deploy-check`, then `npm run build --prefix ../<project>-deploy-check` (or the stack's equivalent, such as `pip install -r requirements.txt` or `composer install --working-dir`).
+   4. Tell the user the result in one line per finding, naming the cause: a file that is not committed or pushed, a lockfile that does not match `package.json` (`npm ci` fails), or a build error. A failure here will also fail on the server.
+   5. Remove the copy: `git worktree remove --force ../<project>-deploy-check`. The user's working folder stays untouched.
 2. `.env` and other secret files are listed in `.gitignore` and are not tracked (`git ls-files | grep -i env`). If a secret was committed, tell the user to rotate it; deleting the file does not remove it from history.
-3. List the environment variables the app reads, and mark which ones are secret.
+3. List the environment variables the app reads, and mark which ones are secret. The clean copy has none of them; the user sets each one on the hosting platform.
 4. For a browser app: any variable with a public prefix (`VITE_`, `NEXT_PUBLIC_`, `PUBLIC_`) ends up in the JavaScript that every visitor downloads. A secret key there is leaked. Move it behind a server or use a key designed to be public (for example the Supabase anon key with row-level security).
-5. For `dokploy-deploy`: the code is pushed to GitHub.
 
 ## 4. Hand off
 
@@ -62,4 +66,4 @@ Tell the user, in at most three lines: the chosen route, why, and what they need
 
 ## Completion
 
-Done when the route is chosen with a stated reason, the readiness items pass or the user has accepted the remaining gaps, and the next skill has started.
+Done when the route is chosen with a stated reason, the clean run has built in an empty copy (or its failures are reported with their cause), the copy is removed, the readiness items pass or the user has accepted the remaining gaps, and the next skill has started.
