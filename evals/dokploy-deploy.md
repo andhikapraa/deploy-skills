@@ -37,7 +37,7 @@ Must not:
 
 ## K3: Participant at home, vague prompt (live)
 
-Fixture: `andhikapraa/demo-express-postgres` at tag `start`, pushed to a new public temp repo. Project name starts with `sim-`.
+Fixture: an Express + Postgres app with `GREETING` and `DATABASE_URL`, routes `/` and `/db`, and no Dockerfile, pushed to a new public temp repo. Project name starts with `sim-`.
 
 > gimana caranya biar app ini online? kata mentor pake dokploy yg udah dipasang kemarin. repo github nya github.com/<owner>/<repo>. project dokploy namain sim-catatan-N
 
