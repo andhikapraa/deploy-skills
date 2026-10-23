@@ -24,7 +24,7 @@ Use `dokploy-kit` major version 2 from npm, so a stale global install never answ
 npx -y dokploy-kit@2 <domain> <action> --flag value
 ```
 
-Below, `dokploy ...` is short for `npx -y dokploy-kit@2 ...`. Write the full command every time; do not store it in a shell variable such as `D="npx ..."`, because agent sandboxes ask for approval on commands they cannot check.
+Below, `dokploy ...` is short for `npx -y dokploy-kit@2 ...`. Write the full command every time; do not store it or an id in a shell variable (`D="npx ..."`, `A=<applicationId>;`) or chain several commands with `;` or `&&`, because agent sandboxes ask for approval on commands they cannot check. Write ids literally, one command per call.
 
 The CLI's built-in schema can lag behind the server: check the server version with `dokploy settings getDokployVersion`. When an action fails with a validation error the CLI did not predict, trust the server's error message over `--help`.
 
@@ -38,7 +38,7 @@ Actions named `delete`, `remove`, `stop`, or `kill` take effect immediately. Ask
 
 ## 1. Source
 
-The repository must be on GitHub. Choose the branch:
+The repository must be on GitHub. Check whether it is public yourself instead of asking the user, who may not know: `curl -s -o /dev/null -w "%{http_code}" https://github.com/<owner>/<repo>` prints `200` for a public repository and `404` for a private or missing one. Choose the branch:
 
 - **Public repository:** use the custom git provider with the HTTPS clone URL. No GitHub connection is needed.
 - **Private repository:** the user connects GitHub once in the Dokploy panel: Settings → Git → GitHub → Create GitHub App, then Install it on GitHub. Tell them to choose **Only select repositories** and pick just the repository to deploy; "All repositories" lets the Dokploy server clone every repo they own. Then find the provider with `dokploy github githubProviders` (keep its `githubId`) and confirm with `dokploy github testConnection --githubId <id>`, which reports how many repositories it can see. After that, use the GitHub provider action. Pushes then trigger automatic deploys.
@@ -114,7 +114,7 @@ Application domain changes apply without a redeploy.
 
 ## 8. Verify
 
-1. `curl -sI http://<domain>` (or `https://`) returns a success or redirect status. Right after the domain is created, HTTPS can fail for about a minute until the certificate arrives: check plain HTTP first, then HTTPS again on a later turn, without a `sleep`.
+1. Check the app's routes yourself (for example `/` and an endpoint that uses the database) before reporting; do not leave that to the user. Right after the domain is created, HTTP already redirects to HTTPS while the certificate is still on its way (about a minute), so a plain `curl` fails with exit 60. Check with `curl -sk https://<domain>/` (`-k` skips only the certificate check), tell the user the certificate is pending, then check once more without `-k` on a later turn, without a `sleep`.
 2. Ask the user to open it and run through the main flow.
 3. Check the app's runtime logs for errors after the first real request.
 

@@ -43,7 +43,7 @@ In a project with a Wrangler config, never run `cf init`, `cf build`, `cf dev`, 
 Skip when `cloudflare.config.ts` already exists.
 
 1. **Plain HTML without a build step:** move the site files (`index.html`, CSS, images) into a `public/` folder first. Otherwise `cf` uploads the whole project folder, including `node_modules`, and the deploy fails on file size. Commit the move.
-2. Run `npx -y cf@latest init .`. It detects the framework and prints the Worker name, framework, build command, and output directory. In a terminal it asks before changing files; when the agent runs it without a terminal it applies the changes directly, so show the user the detected settings and changed files afterwards.
+2. Run `npm ci` first if `node_modules` is missing: without it `cf init` stops with "Unable to detect the version of the `vite` package". Then run `npx -y cf@latest init .`. It detects the framework and prints the Worker name, framework, build command, and output directory. In a terminal it asks before changing files; when the agent runs it without a terminal it applies the changes directly, so show the user the detected settings and changed files afterwards.
 3. For a Vite app it installs `cf` and `@cloudflare/vite-plugin` as devDependencies, creates `cloudflare.config.ts`, adds a `deploy` script, and adds `.env*`, `.dev.vars*`, and `.wrangler` to `.gitignore`.
 4. For plain HTML it creates `wrangler.config.ts` but does not install Wrangler, so the build fails with "No Cloudflare dev-server is installed". Run `npm i -D wrangler@latest`.
 5. Add the build output folder to `.gitignore`: `echo ".cloudflare/" >> .gitignore`.
@@ -81,6 +81,7 @@ Never ask the user to paste a Cloudflare API token into the chat.
 
 1. `curl -sI <url>` returns `200`.
 2. For a single-page app, `curl -sI <url>/some/route` also returns `200`.
+   - `403` with a `cf-mitigated: challenge` header is Cloudflare's "Just a moment..." / "Performing security verification" page, not a failed deploy. On a fresh temporary-account deploy it lasted from a few seconds up to about 7 minutes in testing, in a real browser too, then the same URL returned `200`. Tell the user to wait 5 to 10 minutes before opening or sharing the link, and check again on a later turn.
 3. Ask the user to open the URL and click through the main flow. Failing API calls usually mean a missing environment variable or secret.
 
 ## Later
@@ -125,6 +126,8 @@ Cloudflare's recommended path for Next.js is vinext, a Vite reimplementation of 
 | `Exceeded CPU time limit` | Server code needs more than 10 ms CPU per request on the free plan. Move heavy work elsewhere or use `dokploy-deploy` |
 | A Node module is missing at runtime | The library needs Node APIs Workers lacks; use `dokploy-deploy` |
 | Works locally, API calls fail live | The variable was missing at build time, or the secret was not set |
+| "Unable to detect the version of the `vite` package" on `cf init` | `node_modules` is missing; run `npm ci`, then `cf init` again |
+| `403` and a "Just a moment..." page right after the first deploy | Cloudflare's bot check on a new `workers.dev` site; wait 5 to 10 minutes (step 8) |
 | Temporary account creation is refused | Cloudflare rate-limits temporary accounts; wait, or sign in with a real account |
 
 ## Completion

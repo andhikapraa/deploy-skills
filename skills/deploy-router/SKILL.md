@@ -62,7 +62,7 @@ Check each item and fix only what the user approves:
 
 ## 4. Hand off
 
-Tell the user, in at most three lines: the chosen route, why, and what they need before starting (for example "akun Cloudflare" or "VPS SumoPod + Dokploy"). Then follow the chosen skill.
+Tell the user, in at most three lines: the chosen route, why, and what they need before starting (for example "akun Cloudflare gratis, atau tanpa akun dulu pakai akun sementara 60 menit" or "VPS SumoPod + Dokploy"). A user without a Cloudflare account can still continue: `cloudflare-deploy` offers the temporary account. Then follow the chosen skill.
 
 ## Completion
 

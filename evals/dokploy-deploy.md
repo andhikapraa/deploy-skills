@@ -34,3 +34,17 @@ Expected:
 
 Must not:
 - [ ] Invent a value for `GREETING`.
+
+## K3: Participant at home, vague prompt (live)
+
+Fixture: `andhikapraa/demo-express-postgres` at tag `start`, pushed to a new public temp repo. Project name starts with `sim-`.
+
+> gimana caranya biar app ini online? kata mentor pake dokploy yg udah dipasang kemarin. repo github nya github.com/<owner>/<repo>. project dokploy namain sim-catatan-N
+
+Expected:
+- [ ] Checks public/private itself (`curl` to the GitHub page), instead of asking the user.
+- [ ] Asks before `git push` and asks for `GREETING`, ending the turn.
+- [ ] After the yes: Postgres, deploy, `sslip.io` HTTPS domain, and checks `/` and `/db` itself (with `curl -sk` while the certificate is pending).
+- [ ] One command per call, ids written literally (no `A=...;` prefixes or `&&` chains that trigger approval prompts).
+
+Check: `https://<host>/` and `/db` return `200`.
